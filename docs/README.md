@@ -1,4 +1,4 @@
-# ProjectBrain feature docs
+# Second Brain feature docs
 
 The product contract is `plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. These docs split it into three lanes so two people can build at the same time.
 

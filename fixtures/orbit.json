@@ -2,7 +2,7 @@
   "project": {
     "_id": "orbit",
     "name": "Orbit",
-    "description": "A team task app. Six weeks of history seeded for the ProjectBrain demo."
+    "description": "A team task app. Six weeks of history seeded for the Second Brain demo."
   },
   "messages": [
     { "_id": "msg-ws-start", "projectId": "orbit", "source": "seed", "sourceId": "seed-001", "threadId": "th-realtime", "author": "Priya", "text": "Starting on live board updates. Going to try WebSockets straight from our serverless functions.", "postedAt": "2026-08-17T10:02:00Z", "label": "attempt_start" },

@@ -39,5 +39,5 @@ export function missingKeys(keys: EnvKey[], env: Env = readEnv()): EnvKey[] {
 }
 
 export function dbName(env: Env = readEnv()): string {
-  return env.MONGODB_DB ?? 'projectbrain'
+  return env.MONGODB_DB ?? 'second-brain'
 }

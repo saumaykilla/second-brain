@@ -74,7 +74,7 @@ export default function CheckIdeaPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Check an idea"
-        description="Paste a plan. ProjectBrain warns you if the team already hit a dead end with the same approach, with the proof and what they did instead."
+        description="Paste a plan. Second Brain warns you if the team already hit a dead end with the same approach, with the proof and what they did instead."
       />
 
       <form onSubmit={onCheck} className="flex flex-col gap-3">
