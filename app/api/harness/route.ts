@@ -8,7 +8,10 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const projectId = url.searchParams.get('projectId') || 'orbit'
   const versions = await listHarnessVersions(projectId)
-  const active = await getActiveHarness(projectId)
+  // The active version is the one flagged active in the history; fall back to the
+  // contract's active harness when the history has no explicit active flag.
+  const activeInList = versions.find((v) => v.active)
+  const active = activeInList ?? (await getActiveHarness(projectId))
   return Response.json({
     ok: true,
     projectId,
