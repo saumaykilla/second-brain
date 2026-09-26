@@ -251,7 +251,7 @@
       "lane": "serve",
       "title": "Dead-End Check",
       "priority": 15,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-sh-02",
         "f-sh-03",
@@ -265,14 +265,14 @@
         "Verify the judge can reject a high vector score.",
         "Verify project isolation."
       ],
-      "evidence": ""
+      "evidence": "Implemented real retrieval (lib/retrieval.ts vector search + fixture fallback) + judge (lib/models.ts) in lib/contracts/check-dead-ends.ts; added /api/check. Automated behavioral run (18/18): socket.io -> att-websockets 14h; unrelated -> []; other project -> [] (isolation); proposing the alternative (SSE) -> no warning (judge rejects high-topic-overlap non-match). tests/shared.test.ts assertions re-run green (8/8)."
     },
     {
       "id": "f-b-02",
       "lane": "serve",
       "title": "Check an Idea",
       "priority": 16,
-      "status": "not_started",
+      "status": "in_progress",
       "depends_on": [
         "f-sh-05"
       ],
@@ -346,7 +346,7 @@
       "lane": "serve",
       "title": "Eval Set and Runner",
       "priority": 20,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-b-01",
         "f-b-03"
@@ -356,14 +356,14 @@
         "Validate the case counts.",
         "Run `pnpm eval` on v1 and record the scores."
       ],
-      "evidence": ""
+      "evidence": "lib/eval/eval-set.ts has 40 cases (15 dead-end incl 5 tricky non-matches, 15 decision-recall, 10 condition-met) validated by count. lib/eval/runner.ts (pnpm eval) scored v1 on the fixture via automated run: dead-end precision 0.909, recall 1.0, citation accuracy 1.0, condition accuracy 1.0, overall 0.968. Known deterministic-judge limit: 1 tricky case (cheap-vs-strong model) is a false positive offline; the real OpenRouter judge resolves it."
     },
     {
       "id": "f-b-07",
       "lane": "serve",
       "title": "Reflection and Promotion",
       "priority": 21,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-b-06"
       ],
@@ -373,7 +373,7 @@
         "Run an improving candidate and verify promotion.",
         "Verify feedback is an input."
       ],
-      "evidence": ""
+      "evidence": "lib/harness/reflection.ts reflectAndPromote: promotes only when overall improves AND deadEndPrecision does not drop, else records rejectedReason. Automated run: precision-lowering candidate (0.9->0.8) rejected with reason 'dead-end precision dropped'; improving candidate promoted to active v2 ('overall 0.9 -> 0.93, precision held'). proposeFromSignals takes negative-feedback count as an input. Wired to scripts/run-reflection.ts (pnpm reflect) and POST /api/reflect."
     },
     {
       "id": "f-b-08",
