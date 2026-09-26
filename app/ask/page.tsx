@@ -1,5 +1,131 @@
-import { PlannedScreen } from '@/components/planned-screen'
+'use client'
 
-export default function Page() {
-  return <PlannedScreen title="Ask the brain" description="Ask why the team chose or rejected something, and get an answer with citations." featureId="f-b-03" design="design/03-ask.png" />
+import { useState } from 'react'
+import { PageHeader, RecordCard, StatusMark, EmptyState, ErrorState, LoadingState } from '@/components/states'
+
+interface Citation {
+  kind: 'attempt' | 'decision'
+  id: string
+  title: string
+  status: string
+  supersededBy?: string
+}
+
+interface AskResponse {
+  ok: boolean
+  answer: string
+  citations: Citation[]
+  unsupported: boolean
+  error?: string
+}
+
+const EXAMPLES = [
+  'Why did we not use Postgres for search?',
+  'What authentication does Orbit use?',
+]
+
+export default function AskPage() {
+  const [question, setQuestion] = useState('')
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [result, setResult] = useState<AskResponse | null>(null)
+
+  async function onAsk(e: React.FormEvent) {
+    e.preventDefault()
+    if (!question.trim()) return
+    setStatus('loading')
+    setResult(null)
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ projectId: 'orbit', question }),
+      })
+      const data = (await res.json()) as AskResponse
+      if (!res.ok || !data.ok) throw new Error(data.error ?? 'Ask failed')
+      setResult(data)
+      setStatus('done')
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  function markFor(c: Citation) {
+    if (c.kind === 'decision') return c.status === 'superseded' ? 'superseded' : 'current'
+    return c.status === 'revisitable' ? 'revisitable' : 'dead-end'
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        title="Ask the brain"
+        description="Ask why the team decided or rejected something. Answers cite the decision or attempt they come from, and never present a superseded decision as current."
+      />
+
+      <form onSubmit={onAsk} className="flex flex-col gap-3">
+        <label htmlFor="q" className="text-sm font-medium">
+          Your question
+        </label>
+        <input
+          id="q"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder={EXAMPLES[0]}
+          className="w-full rounded-md border border-border bg-background p-3 outline-none focus:border-foreground"
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="submit"
+            disabled={!question.trim() || status === 'loading'}
+            className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
+          >
+            Ask
+          </button>
+          {EXAMPLES.map((ex) => (
+            <button
+              key={ex}
+              type="button"
+              onClick={() => setQuestion(ex)}
+              className="text-sm text-muted-foreground underline underline-offset-4"
+            >
+              {ex}
+            </button>
+          ))}
+        </div>
+      </form>
+
+      {status === 'loading' ? <LoadingState label="Reading project memory\u2026" /> : null}
+      {status === 'error' ? <ErrorState title="Could not answer that">Try again.</ErrorState> : null}
+
+      {status === 'done' && result?.unsupported ? (
+        <EmptyState title="Not enough in memory">
+          <p>I could not find a decision or attempt that answers that, so I will not guess.</p>
+        </EmptyState>
+      ) : null}
+
+      {status === 'done' && result && !result.unsupported ? (
+        <section aria-label="Answer" className="flex flex-col gap-4">
+          <RecordCard>
+            <p className="leading-relaxed">{result.answer}</p>
+          </RecordCard>
+          <h2 className="font-serif text-xl">Citations</h2>
+          <ul className="flex flex-col gap-3">
+            {result.citations.map((c) => (
+              <li key={`${c.kind}-${c.id}`}>
+                <RecordCard>
+                  <div className="flex items-center justify-between gap-2">
+                    <StatusMark mark={markFor(c) as never} />
+                    <code className="font-mono text-xs text-muted-foreground">{c.id}</code>
+                  </div>
+                  <p className="font-medium">{c.title}</p>
+                  {c.status === 'superseded' && c.supersededBy ? (
+                    <p className="text-sm text-muted-foreground">Superseded by {c.supersededBy}. Not the current decision.</p>
+                  ) : null}
+                </RecordCard>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
+  )
 }
