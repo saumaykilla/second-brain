@@ -4,6 +4,7 @@
     {
       "id": "f-sh-01",
       "lane": "shared",
+      "depends_on": [],
       "title": "Platform Foundation and Environments",
       "priority": 1,
       "status": "in_progress",

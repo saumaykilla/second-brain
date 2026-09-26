@@ -22,18 +22,32 @@ Confirmed product direction:
 - The seeded story is Orbit, a team task app, ingested through the real pipeline.
 - The memory graph and the nightly AWS reflection job are registered after the demo path.
 
+> Note (post-merge): `main` was merged into this branch and introduced a newer
+> `feature_list.json` with lane-based ids (`f-sh-*` shared, `f-a-*` ingest, `f-b-*`
+> serve). Older session logs below reference the previous ids (`f-aws-01`, `f-be-01`,
+> etc.); they are kept as an accurate historical record. The mapping for Person 1's
+> lane: A1→`f-a-01`/`f-a-02`, A2→`f-a-03`, A3→`f-a-06`, A5→`f-a-08`, A6→`f-a-04`,
+> A7→`f-a-05`, A8→`f-a-09`. Step 0 corresponds to `f-sh-04` (now `passing`) and
+> `f-sh-01`/`f-sh-02`/`f-sh-03`.
+
 ## Next best action
 
-Finish `f-aws-01`: run `npm install` on a machine with registry access, then run the
-full `npm run typecheck`, `create-indexes`, and `load-fixtures` scripts against an Atlas
-cluster to gather the evidence its verification steps require. After that, complete the
-frontend/API scaffolding and health endpoints, then move to `f-db-01`.
+Finish `f-sh-01` (Platform Foundation): run `pnpm install` on a machine with registry
+access, then `pnpm typecheck`, `pnpm test`, `pnpm build`, and the DB/seed scripts against
+an Atlas cluster (with real OpenAI/OpenRouter keys) to capture the acceptance evidence.
+Then land the `src/` ingestion lane against the real `MongoStore`/`MongoCheckpointer` and
+real provider so the `f-a-*` ingest features can be verified and marked `passing`. Person
+2 can begin the real `checkDeadEnds`/`checkConditions` (`f-b-01`, `f-a-07`) against the
+same foundation.
 
 ## In progress
 
-`f-aws-01` — Platform Foundation. Step-0 shared foundation (S1–S5) is scaffolded (see
-session log 2026-09-26). Not yet `passing`: Atlas-dependent verification steps and the
-Next.js/API health endpoints are still outstanding.
+`f-sh-01` — Platform Foundation and Environments. Person 1's ingestion lane (A1–A9) is
+implemented under `src/` on top of the shared foundation (`f-sh-04`, `passing`). None of
+the `f-a-*` ingest features is marked `passing` yet — their acceptance evidence needs a
+live Atlas cluster and real model providers. Note: a parallel foundation exists under
+`lib/` from the other track (merged from `main`); the two need reconciling into one
+canonical layout before the ingest features are verified.
 
 ## Known risks
 
@@ -56,6 +70,41 @@ Next.js/API health endpoints are still outstanding.
 - Graph view, pull-request comments, voice transcription, and nightly reflection are later than the demo path. Starting them first would skip the warning, the citation, and the measured harness change.
 
 ## Session log
+
+### 2026-09-26 — Person 1 ingestion lane (A1–A9)
+
+- Built the "getting data in" lane on top of the Step 0 foundation. All dependency-free
+  and offline-runnable; MongoDB/AWS/SDK integrations sit behind seams with in-memory
+  default impls and Atlas/S3 adapters that drop in after `npm install`.
+- **A1/A2 pipeline** (`src/pipeline/`): classify → extract → merge_attempt →
+  embed_and_store → link, each writing a checkpoint. `merge_attempt` merges an
+  attempt_result into an open attempt in the same thread / by the same author within 3
+  days (R9). Prompts come from `getActiveHarness()` (R19). Checkpoints use a
+  MongoDBSaver-style seam (`InMemoryCheckpointer` / `MongoCheckpointer`), never a local
+  file (R34).
+- **A3 Slack** (`src/connectors/slack.ts` + `crypto.ts`): v0 HMAC signature verify,
+  Events API ingest, backfill, and `/brain deadend` calling `checkDeadEnds` (the S4 fake
+  for now) to post a threaded warning.
+- **A4 GitHub** (`src/connectors/github.ts`): signature verify; closed-unmerged PR /
+  revert / wontfix issue → attempt_result; merged PR → decision; backfill helper.
+- **A5 CI/logs** (`src/connectors/ci.ts` + `evidence-store.ts`): `workflow_run`
+  failure → fetch log → store to object storage → Evidence record linked to the attempt
+  (R4).
+- **A6 capture API** (`src/api/capture.ts`): `POST /api/capture` runs the pipeline.
+- **A7 seed** (`src/seed/`, `src/scripts/seed-orbit.ts`): ~150 Orbit messages through the
+  REAL pipeline; attempts/decisions produced by extraction (f-db-02).
+- **A8 worker** (`src/worker/`): job queue + worker entrypoint (App Runner/Lambda) and a
+  validatable EventBridge deployment definition incl. the nightly reflection cron.
+- **A9 Linear** (`src/connectors/linear.ts`): sums logged time into attempt `hoursSpent`.
+- Rewired the shared `ingest()` to delegate to the real pipeline.
+- Verified: `npm run typecheck:foundation` passes (0 errors, no deps). A behavioral smoke
+  test exercised A1–A9 end-to-end — 32/32 assertions passed (attempt merge to 14h, 10
+  checkpoints for 2 messages, noise → no record, Slack sig verify/reject, `/brain
+  deadend` match + no-match, GitHub PR/issue mapping, CI evidence linked to attempt,
+  worker drains queue, Linear hours summed, 150 seed messages → 4 attempts + 4
+  decisions). Temp test artifacts were removed; `./init.sh` exits 0.
+- Design doc: `docs/ingestion-lane.md`. `f-aws-01` remains the single `in_progress`
+  feature; no feature was marked `passing` (Atlas + real providers still required).
 
 ### 2026-09-26 — Step 0 shared foundation (S1–S5)
 
