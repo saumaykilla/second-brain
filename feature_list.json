@@ -2,213 +2,411 @@
   "project": "ProjectBrain",
   "features": [
     {
-      "id": "f-aws-01",
+      "id": "f-sh-01",
+      "lane": "shared",
       "title": "Platform Foundation and Environments",
       "priority": 1,
-      "status": "not_started",
+      "status": "in_progress",
+      "depends_on": [],
       "user_visible_behavior": "A developer can open ProjectBrain locally, see a healthy API response, and see a clear unavailable state when MongoDB or a required provider configuration is missing.",
       "verification": [
         "Run `./init.sh`.",
-        "Install dependencies using the repository-documented command.",
-        "Run the frontend and API build, lint, type-check, and test commands.",
-        "Start the local stack and verify the frontend and API health endpoints.",
-        "Withhold a required configuration value and verify a safe readiness failure.",
-        "Confirm secrets are not committed and model-provider keys are not exposed to browser code."
+        "Run `pnpm install`.",
+        "Run `pnpm typecheck`, `pnpm test`, and `pnpm build`.",
+        "Start the app and call `/api/health` and `/api/ready`.",
+        "Unset `MONGODB_URI` and confirm `/api/ready` returns 503 naming it.",
+        "Confirm `.env*` files are git-ignored and no client bundle references a provider key."
       ],
       "evidence": ""
     },
     {
-      "id": "f-db-01",
+      "id": "f-sh-02",
+      "lane": "shared",
       "title": "Memory Collections and Search Indexes",
       "priority": 2,
       "status": "not_started",
+      "depends_on": [
+        "f-sh-01"
+      ],
       "user_visible_behavior": "Project memory for one project can be stored and retrieved as messages, decisions, attempts, entities, edges, warnings, feedback, and harness versions. Search results from another project do not appear.",
       "verification": [
-        "Apply the collection and index definitions to the development database.",
-        "Insert one attempt, one decision, and one edge, then read them back by project id.",
-        "Run the dead-end vector search shape against a fixture embedding and confirm the project and outcome filters.",
-        "Confirm a second project id is excluded from those results.",
-        "Confirm pipeline checkpoints are stored in MongoDB and not in a worker-local file."
+        "Run `pnpm db:setup` against the development cluster.",
+        "Insert one attempt, one decision, and one edge for project `orbit`, then read them back by project id.",
+        "Run a `$vectorSearch` with a fixture embedding filtered to `orbit` and `outcome in [failed, abandoned]`.",
+        "Insert an attempt for a second project and confirm it is excluded.",
+        "Run `pnpm db:setup` a second time and confirm no errors."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-01",
-      "title": "Capture and Extraction Pipeline",
+      "id": "f-sh-03",
+      "lane": "shared",
+      "title": "Harness Config v1",
       "priority": 3,
       "status": "not_started",
-      "user_visible_behavior": "A captured Slack-style or web message becomes a structured decision or attempt. A later result in the same thread updates that attempt instead of creating a duplicate.",
+      "depends_on": [
+        "f-sh-02"
+      ],
+      "user_visible_behavior": "The active harness version for a project can be read, and it supplies the extraction prompts, match prompts, `k`, `minScore`, hybrid weight, and model routing.",
       "verification": [
-        "Run unit tests for classification labels and the extraction schema.",
-        "Post a manual capture that starts an attempt and a later result in the same thread, and verify one attempt with outcome, blockers, and evidence.",
-        "Verify noise messages are stored but do not create attempts or decisions.",
-        "Verify embeddings are written on attempts and decisions.",
-        "Verify each pipeline node emits a trace."
+        "Run the harness unit test.",
+        "Load fixtures and read the active harness for `orbit`.",
+        "Confirm there is exactly one active version."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-02",
-      "title": "Dead-End Check",
+      "id": "f-sh-04",
+      "lane": "shared",
+      "title": "Shared Types, Contracts, and Orbit Fixture",
       "priority": 4,
-      "status": "not_started",
-      "user_visible_behavior": "Pasting a plan that repeats a failed approach returns the matching dead end, the blocker, the evidence, the alternative, the hours previously spent, and a confidence score. A genuinely different idea does not warn.",
-      "verification": [
-        "Run the retrieval and judge unit tests, including tricky non-matches.",
-        "POST /api/check with a WebSockets-on-serverless idea and verify a match above the cutoff, with blockers and hours spent.",
-        "POST /api/check with an unrelated idea and verify no warning.",
-        "Verify the judge can reject a high vector score when conditions differ.",
-        "Verify results never include another project's attempts."
+      "status": "passing",
+      "depends_on": [
+        "f-sh-01"
       ],
-      "evidence": ""
+      "user_visible_behavior": "Either lane can run the app against a realistic Orbit fixture before the other lane's code exists.",
+      "verification": [
+        "Run `pnpm typecheck`.",
+        "Run `pnpm test` (fixture shape and contract tests).",
+        "Run `pnpm db:fixtures` when `MONGODB_URI` is set."
+      ],
+      "evidence": "2026-09-26: pnpm exec tsc --noEmit exit 0; pnpm exec vitest run -> 14/14 passed (fixture R31/R32 shape, contract placeholders, socket.io plan matches att-websockets with 14h, App Runner reopens WebSockets); next build succeeded."
     },
     {
-      "id": "f-db-02",
-      "title": "Orbit Seed and Eval Set",
+      "id": "f-sh-05",
+      "lane": "shared",
+      "title": "App Shell and Design Tokens",
       "priority": 5,
       "status": "not_started",
-      "user_visible_behavior": "The Orbit project shows six weeks of history, including four dead ends, a superseded authentication chain, and a later decision that can reopen the WebSockets dead end. The eval set contains the cases used to measure recall.",
+      "depends_on": [
+        "f-sh-01"
+      ],
+      "user_visible_behavior": "Every screen shares the lab-notebook shell: paper background, beige index navigation, red margin line, and the red, amber, and green status marks.",
       "verification": [
-        "Run the seed script against an empty development database so messages pass through the capture pipeline.",
-        "Confirm four attempts with the specified outcomes, hours, and alternatives.",
-        "Confirm the sessions, JWT, and Better Auth chain is stored as superseded decisions.",
-        "Confirm the eval set contains 40 cases: 15 dead-end, 15 decision-recall, and 10 condition-met, including 5 tricky non-matches.",
-        "Confirm seeded attempts are produced by extraction rather than inserted as finished records."
+        "Run `pnpm build`.",
+        "Open each route in a browser and confirm the shell and nav render.",
+        "Compare against `design/01-timeline.png`."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-03",
-      "title": "Slack Capture and Proactive Warnings",
+      "id": "f-a-01",
+      "lane": "ingest",
+      "title": "Message Classification",
       "priority": 6,
       "status": "not_started",
-      "user_visible_behavior": "When someone says they are about to repeat a failed approach in Slack, ProjectBrain replies in that thread with the past dead end, evidence, alternative, and estimated hours saved.",
+      "depends_on": [
+        "f-sh-03",
+        "f-sh-04"
+      ],
+      "user_visible_behavior": "Each captured message is stored and labeled `decision`, `attempt_start`, `attempt_result`, `intent`, `question`, or `noise`.",
       "verification": [
-        "Run Slack event signature and intent-classification tests.",
-        "Replay the socket.io intent fixture and verify a threaded warning with confidence, blocker, alternative, and hours.",
-        "Verify a non-matching message does not post a warning.",
-        "Record the warning in the warnings collection.",
-        "Verify a not-relevant action is stored as feedback."
+        "Run the classifier unit tests.",
+        "Classify 20 labeled Orbit messages and record accuracy."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-04",
-      "title": "Cited Answers",
+      "id": "f-a-02",
+      "lane": "ingest",
+      "title": "Attempt and Decision Extraction",
       "priority": 7,
       "status": "not_started",
-      "user_visible_behavior": "Asking why the team rejected an approach returns a concise answer that cites the attempt or decision. A superseded decision is not presented as the current one.",
+      "depends_on": [
+        "f-a-01"
+      ],
+      "user_visible_behavior": "A message that reports a failure becomes an attempt with goal, approach, outcome, blockers, evidence, conditions, and hours. A decision message becomes a decision.",
       "verification": [
-        "Ask the Postgres search question against seeded Orbit data and verify the benchmark citation and the Atlas Search alternative.",
-        "Ask what authentication the team uses and verify Better Auth is current and JWT is marked superseded.",
-        "Verify an unsupported question does not invent a dead end.",
-        "Verify citations resolve to attempt and decision ids in the same project.",
-        "Post feedback on an answer and read it back."
+        "Run the extraction schema tests.",
+        "Extract the Postgres LIKE result and verify blockers, evidence, and 9 hours.",
+        "Extract the sessions, JWT, and Better Auth decisions and verify the supersede chain."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-05",
-      "title": "Revisitable Conditions",
+      "id": "f-a-03",
+      "lane": "ingest",
+      "title": "Attempt Merging and the Ingest Pipeline",
       "priority": 8,
       "status": "not_started",
-      "user_visible_behavior": "When a new decision satisfies a dead end's conditions, ProjectBrain says that dead end may now be possible and marks it revisitable instead of leaving it as an active failure.",
+      "depends_on": [
+        "f-a-02"
+      ],
+      "user_visible_behavior": "A captured Slack-style or web message becomes a structured decision or attempt. A later result in the same thread updates that attempt instead of creating a duplicate.",
       "verification": [
-        "Capture the App Runner decision through the pipeline.",
-        "Verify the WebSockets attempt status becomes revisitable and the explanation names the serverless blocker.",
-        "Verify an unrelated decision does not flip other dead ends.",
-        "Verify the link between the new decision and the attempt is stored.",
-        "Replay the decision event and verify a single transition."
+        "Post a start then a result in one thread and verify one attempt with outcome, blockers, and evidence.",
+        "Verify noise is stored and creates nothing.",
+        "Verify embeddings exist on new records.",
+        "Verify each step wrote a trace."
       ],
       "evidence": ""
     },
     {
-      "id": "f-ui-01",
-      "title": "Timeline and Dead-End Detail",
+      "id": "f-a-04",
+      "lane": "ingest",
+      "title": "Manual Web Capture",
       "priority": 9,
       "status": "not_started",
-      "user_visible_behavior": "The Orbit timeline shows decisions and attempts over six weeks. Failed attempts are red, revisitable ones are amber, and opening a dead end shows the goal, approach, blockers, evidence, conditions, hours, and what the team did instead.",
+      "depends_on": [
+        "f-a-03",
+        "f-sh-05"
+      ],
+      "user_visible_behavior": "On `/capture`, a member types or pastes a message, picks a thread or starts one, and sees what ProjectBrain extracted from it.",
       "verification": [
-        "Run frontend lint, type-check, and route tests.",
-        "Load the seeded Orbit project and verify four dead ends and the superseded authentication decisions appear in order.",
-        "Open the WebSockets dead end and verify evidence, 14 hours, conditions, and the SSE alternative.",
-        "After the condition re-check, verify that node is amber.",
-        "Exercise the timeline and detail flow in a browser."
+        "Capture the WebSockets start and result in the browser and see one attempt.",
+        "Capture a noise message and see the noise label with no record.",
+        "Check loading and error states."
       ],
       "evidence": ""
     },
     {
-      "id": "f-ui-02",
-      "title": "Ask the Brain and Check an Idea",
+      "id": "f-a-05",
+      "lane": "ingest",
+      "title": "Orbit Seed Through the Pipeline",
       "priority": 10,
       "status": "not_started",
-      "user_visible_behavior": "A person can ask a project question and see cited attempt and decision cards, or paste a plan and see similar dead ends with match confidence.",
+      "depends_on": [
+        "f-a-03"
+      ],
+      "user_visible_behavior": "The Orbit project shows six weeks of history, including four dead ends, a superseded auth chain, and a later decision that can reopen the WebSockets dead end.",
       "verification": [
-        "Ask the seeded Postgres question in the browser and open a citation.",
-        "Paste the socket.io plan into Check an Idea and verify the WebSockets dead end, confidence, and hours.",
-        "Paste a non-matching plan and verify an explicit no-match state.",
-        "Verify loading and failure states.",
-        "Exercise both screens in the browser."
+        "Run the seed on an empty database.",
+        "Confirm the four dead ends and their hours.",
+        "Confirm the supersede chain.",
+        "Diff seeded records against `fixtures/orbit.json`."
       ],
       "evidence": ""
     },
     {
-      "id": "f-be-06",
-      "title": "Self-Improving Harness",
+      "id": "f-a-06",
+      "lane": "ingest",
+      "title": "Slack Event Capture",
       "priority": 11,
       "status": "not_started",
-      "user_visible_behavior": "Running reflection proposes one harness change, re-runs the eval set, and keeps the new version only when the score improves without a precision drop. Rejected proposals stay recorded with the reason.",
+      "depends_on": [
+        "f-a-03"
+      ],
+      "user_visible_behavior": "A message posted in a connected Slack channel is stored and processed once.",
       "verification": [
-        "Run the eval runner on the 40 cases and record precision, recall, citation accuracy, and staleness.",
-        "Force a candidate that lowers precision and verify it is not promoted.",
-        "Run a candidate that improves the parent score and verify it becomes the active harness version.",
-        "Verify extraction and matching read prompts and thresholds from the active harness config.",
-        "Verify feedback and failed cases are inputs to the proposal."
+        "Run the signature tests.",
+        "Replay the socket.io fixture event twice and confirm one stored message.",
+        "Send a bad signature and confirm 401."
       ],
       "evidence": ""
     },
     {
-      "id": "f-ui-03",
-      "title": "Harness Lab and Impact",
+      "id": "f-a-07",
+      "lane": "ingest",
+      "title": "Revisitable Conditions",
       "priority": 12,
       "status": "not_started",
-      "user_visible_behavior": "Harness Lab shows version history, score changes, and the diff of what reflection changed. Impact shows warnings sent, hours saved from accepted warnings, and the precision trend.",
+      "depends_on": [
+        "f-a-03"
+      ],
+      "user_visible_behavior": "When a new decision satisfies a dead end's conditions, ProjectBrain marks that attempt revisitable and says which blocker may no longer apply.",
       "verification": [
-        "Open Harness Lab and verify at least two versions with scores and a diff.",
-        "Run reflection from the button and verify the timeline updates only after promotion.",
-        "Open Impact and verify hours saved equals the sum of hours spent for accepted warnings.",
-        "Record a not-relevant feedback action and verify it is visible to the reflection inputs.",
-        "Exercise both screens in a browser."
+        "Capture the App Runner decision.",
+        "Verify the WebSockets status and explanation.",
+        "Verify an unrelated decision changes nothing.",
+        "Verify the `unblocks` edge.",
+        "Replay and verify one transition."
       ],
       "evidence": ""
     },
     {
-      "id": "f-ui-04",
-      "title": "Memory Graph",
+      "id": "f-a-08",
+      "lane": "ingest",
+      "title": "Evidence Storage",
       "priority": 13,
       "status": "not_started",
-      "user_visible_behavior": "A graph shows decisions, attempts, and entities connected by caused-by, superseded-by, alternative-to, blocked-by, and unblocks edges.",
+      "depends_on": [
+        "f-a-03"
+      ],
+      "user_visible_behavior": "Evidence files such as logs and benchmarks can be opened from a dead-end record.",
       "verification": [
-        "Render the Orbit graph and verify the WebSockets attempt links to the SSE decision.",
-        "Verify the authentication decisions show the superseded chain.",
-        "Verify selecting a node opens its record.",
-        "Verify the unblocks edge appears after the condition re-check.",
-        "Exercise the graph in a browser."
+        "Upload a fixture log and open it from the WebSockets attempt.",
+        "Confirm the URL expires."
       ],
       "evidence": ""
     },
     {
-      "id": "f-aws-02",
-      "title": "Workers, Nightly Reflection, and Evidence Storage",
+      "id": "f-a-09",
+      "lane": "ingest",
+      "title": "AWS Hosting and Worker",
       "priority": 14,
       "status": "not_started",
-      "user_visible_behavior": "Evidence files can be opened from a dead-end record. A scheduled reflection run can promote a harness version without someone clicking the button.",
+      "depends_on": [
+        "f-a-03"
+      ],
+      "user_visible_behavior": "ProjectBrain runs on AWS, and captures are processed by a background worker.",
       "verification": [
-        "Upload a fixture log to object storage and verify the attempt evidence URL resolves.",
-        "Run the worker entrypoint that processes a capture job outside the web request.",
-        "Invoke the reflection job the way the schedule would and verify it uses the same promotion rules.",
-        "Validate the AWS infrastructure definition without deploying production resources.",
-        "Verify a failed scheduled run does not promote a harness version."
+        "Validate the infrastructure definition.",
+        "Run the worker entrypoint on a fixture capture job.",
+        "Invoke the schedule hook the way the schedule would."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-01",
+      "lane": "serve",
+      "title": "Dead-End Check",
+      "priority": 15,
+      "status": "not_started",
+      "depends_on": [
+        "f-sh-02",
+        "f-sh-03",
+        "f-sh-04"
+      ],
+      "user_visible_behavior": "Pasting a plan that repeats a failed approach returns the matching dead end, blocker, evidence, alternative, hours, and confidence. A different idea does not warn.",
+      "verification": [
+        "Run retrieval and judge tests, including tricky non-matches.",
+        "POST the socket.io plan and verify a match above the cutoff.",
+        "POST an unrelated plan and verify no warning.",
+        "Verify the judge can reject a high vector score.",
+        "Verify project isolation."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-02",
+      "lane": "serve",
+      "title": "Check an Idea",
+      "priority": 16,
+      "status": "not_started",
+      "depends_on": [
+        "f-sh-05"
+      ],
+      "user_visible_behavior": "On `/check`, a pasted plan shows similar dead ends with confidence, evidence, alternative, and hours, or an explicit no-match state.",
+      "verification": [
+        "Paste the socket.io plan in the browser.",
+        "Paste a new idea and see no match.",
+        "Mark a result not relevant and read the feedback back.",
+        "Check loading and error states."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-03",
+      "lane": "serve",
+      "title": "Ask the Brain",
+      "priority": 17,
+      "status": "not_started",
+      "depends_on": [
+        "f-sh-02",
+        "f-sh-05"
+      ],
+      "user_visible_behavior": "On `/ask`, a question returns a concise answer with cited attempt and decision cards.",
+      "verification": [
+        "Ask the Postgres question and open a citation.",
+        "Ask about auth and verify current and superseded.",
+        "Ask something unsupported.",
+        "Verify citations resolve in the same project."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-04",
+      "lane": "serve",
+      "title": "Timeline and Dead-End Detail",
+      "priority": 18,
+      "status": "not_started",
+      "depends_on": [
+        "f-sh-04",
+        "f-sh-05"
+      ],
+      "user_visible_behavior": "The Orbit timeline shows six weeks of decisions and attempts. Failed attempts are red, revisitable ones amber, and a dead end opens to goal, approach, blockers, evidence, conditions, hours, and the alternative.",
+      "verification": [
+        "Load Orbit and verify order and colors.",
+        "Open WebSockets and verify evidence, 14 hours, conditions, and SSE.",
+        "After `f-a-07`, verify it turns amber in the browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-05",
+      "lane": "serve",
+      "title": "Slack Proactive Warning",
+      "priority": 19,
+      "status": "not_started",
+      "depends_on": [
+        "f-b-01",
+        "f-a-06"
+      ],
+      "user_visible_behavior": "When someone says in Slack they are about to repeat a failed approach, ProjectBrain replies in that thread with the dead end, evidence, alternative, and hours saved.",
+      "verification": [
+        "Run the handler against the socket.io fixture with a mocked Slack client.",
+        "Verify a non-match posts nothing.",
+        "Verify the warning record.",
+        "Click Not relevant and verify feedback."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-06",
+      "lane": "serve",
+      "title": "Eval Set and Runner",
+      "priority": 20,
+      "status": "not_started",
+      "depends_on": [
+        "f-b-01",
+        "f-b-03"
+      ],
+      "user_visible_behavior": "Running the eval reports dead-end precision and recall, citation accuracy, staleness, and hours saved for the active harness.",
+      "verification": [
+        "Validate the case counts.",
+        "Run `pnpm eval` on v1 and record the scores."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-07",
+      "lane": "serve",
+      "title": "Reflection and Promotion",
+      "priority": 21,
+      "status": "not_started",
+      "depends_on": [
+        "f-b-06"
+      ],
+      "user_visible_behavior": "Running reflection proposes one harness change, reruns the evals, and keeps it only when the score improves without a precision drop. Rejections are recorded with the reason.",
+      "verification": [
+        "Force a precision-lowering candidate and verify rejection.",
+        "Run an improving candidate and verify promotion.",
+        "Verify feedback is an input."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-08",
+      "lane": "serve",
+      "title": "Harness Lab and Impact",
+      "priority": 22,
+      "status": "not_started",
+      "depends_on": [
+        "f-b-07",
+        "f-sh-05"
+      ],
+      "user_visible_behavior": "Harness Lab shows versions, scores, and diffs, and can run reflection. Impact shows warnings sent, hours saved, and the precision trend.",
+      "verification": [
+        "Open Lab and verify two versions and a diff.",
+        "Run reflection from the button.",
+        "Open Impact and check the hours-saved sum."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-b-09",
+      "lane": "serve",
+      "title": "Memory Graph",
+      "priority": 23,
+      "status": "not_started",
+      "depends_on": [
+        "f-b-04"
+      ],
+      "user_visible_behavior": "A graph shows decisions, attempts, and entities connected by caused-by, superseded-by, alternative-to, blocked-by, and unblocks edges.",
+      "verification": [
+        "Render Orbit and verify the chains.",
+        "Select a node.",
+        "Verify the `unblocks` edge after `f-a-07`."
       ],
       "evidence": ""
     }

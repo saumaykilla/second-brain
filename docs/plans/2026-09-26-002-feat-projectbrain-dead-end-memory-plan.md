@@ -109,7 +109,7 @@ Teams repeat approaches that already failed because the reason, the evidence, an
 - R34. MongoDB remains authoritative. Atlas Vector Search and Atlas Search serve retrieval. LangGraph checkpoints use the MongoDB saver.
 - R35. OpenAI supplies embeddings and structured extraction. OpenRouter routes cheap classification to a small model and dead-end judgment plus reflection to a strong model. That routing policy is a harness setting.
 - R36. AWS runs the app and, in the later worker feature, the background worker, nightly reflection schedule, and evidence object storage.
-- R37. Only one registered feature is implementation-active at a time, beginning with the platform foundation.
+- R37. Work is split into a shared Step 0 and two parallel lanes (Capture and Recall), as described in `docs/README.md`. Each lane has at most one implementation-active feature at a time, beginning with the shared platform foundation.
 
 ### Key Flows
 

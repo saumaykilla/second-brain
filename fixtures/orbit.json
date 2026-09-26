@@ -1,0 +1,165 @@
+{
+  "project": {
+    "_id": "orbit",
+    "name": "Orbit",
+    "description": "A team task app. Six weeks of history seeded for the ProjectBrain demo."
+  },
+  "messages": [
+    { "_id": "msg-ws-start", "projectId": "orbit", "source": "seed", "sourceId": "seed-001", "threadId": "th-realtime", "author": "Priya", "text": "Starting on live board updates. Going to try WebSockets straight from our serverless functions.", "postedAt": "2026-08-17T10:02:00Z", "label": "attempt_start" },
+    { "_id": "msg-ws-result", "projectId": "orbit", "source": "seed", "sourceId": "seed-014", "threadId": "th-realtime", "author": "Priya", "text": "Tried WebSockets on the serverless functions for 2 days. Connections drop at the 10s timeout, see log. Switching to SSE.", "postedAt": "2026-08-19T16:40:00Z", "label": "attempt_result" },
+    { "_id": "msg-search-result", "projectId": "orbit", "source": "seed", "sourceId": "seed-037", "threadId": "th-search", "author": "Marco", "text": "Postgres LIKE search is 2.4s p95 on 200k tasks, benchmark attached. Moving search to Atlas Search.", "postedAt": "2026-08-27T11:15:00Z", "label": "attempt_result" },
+    { "_id": "msg-pdf-result", "projectId": "orbit", "source": "seed", "sourceId": "seed-061", "threadId": "th-pdf", "author": "Dana", "text": "Dropping the PDF export library, AGPL licence is a no for us. Lost about 6 hours on it.", "postedAt": "2026-09-02T09:30:00Z", "label": "attempt_result" },
+    { "_id": "msg-summary-result", "projectId": "orbit", "source": "seed", "sourceId": "seed-088", "threadId": "th-summary", "author": "Sam", "text": "Cheapest model for ticket summaries only hit 61% on our eval set. Not shipping that.", "postedAt": "2026-09-09T14:05:00Z", "label": "attempt_result" },
+    { "_id": "msg-apprunner", "projectId": "orbit", "source": "seed", "sourceId": "seed-142", "threadId": "th-infra", "author": "Priya", "text": "Decision: the realtime service moves to AWS App Runner as a long-running container.", "postedAt": "2026-09-24T15:00:00Z", "label": "decision" },
+    { "_id": "msg-noise", "projectId": "orbit", "source": "seed", "sourceId": "seed-099", "threadId": "th-random", "author": "Dana", "text": "Heading to lunch at 12:30.", "postedAt": "2026-09-10T11:50:00Z", "label": "noise" }
+  ],
+  "attempts": [
+    {
+      "_id": "att-websockets",
+      "projectId": "orbit",
+      "goal": "Live task board updates for everyone on the team",
+      "approach": "WebSockets (socket.io) served directly from serverless functions",
+      "outcome": "failed",
+      "blockers": [
+        {
+          "type": "technical_limit",
+          "detail": "Serverless functions time out after 10 seconds, which drops every open WebSocket connection.",
+          "evidence": [{ "kind": "log", "summary": "WebSocket closed 1006 after 10s (function timeout)" }]
+        }
+      ],
+      "evidence": [{ "kind": "log", "summary": "WebSocket closed 1006 after 10s (function timeout)" }],
+      "conditions": [
+        { "description": "Realtime runs on a long-running service instead of serverless functions", "met": false },
+        { "description": "A managed pub/sub provider handles the connections", "met": false }
+      ],
+      "alternative": "Server-Sent Events",
+      "hoursSpent": 14,
+      "authors": ["Priya"],
+      "sourceMessageIds": ["msg-ws-start", "msg-ws-result"],
+      "entityIds": ["ent-websockets", "ent-serverless", "ent-sse"],
+      "status": "active",
+      "startedAt": "2026-08-17T10:02:00Z",
+      "endedAt": "2026-08-19T16:40:00Z"
+    },
+    {
+      "_id": "att-postgres-like",
+      "projectId": "orbit",
+      "goal": "Full-text search across tasks",
+      "approach": "Postgres LIKE queries over task titles and descriptions",
+      "outcome": "failed",
+      "blockers": [
+        {
+          "type": "performance",
+          "detail": "LIKE with leading wildcards cannot use an index; p95 was 2.4s on 200k tasks.",
+          "evidence": [{ "kind": "benchmark", "summary": "p95 2.4s on 200k tasks, 40 concurrent users" }]
+        }
+      ],
+      "evidence": [{ "kind": "benchmark", "summary": "p95 2.4s on 200k tasks, 40 concurrent users" }],
+      "conditions": [{ "description": "Task count stays under 10k", "met": false }],
+      "alternative": "Atlas Search",
+      "hoursSpent": 9,
+      "authors": ["Marco"],
+      "sourceMessageIds": ["msg-search-result"],
+      "entityIds": ["ent-postgres", "ent-atlas-search"],
+      "status": "active",
+      "startedAt": "2026-08-25T09:00:00Z",
+      "endedAt": "2026-08-27T11:15:00Z"
+    },
+    {
+      "_id": "att-pdf-library",
+      "projectId": "orbit",
+      "goal": "Export task boards to PDF",
+      "approach": "An AGPL-licensed PDF rendering library",
+      "outcome": "abandoned",
+      "blockers": [
+        {
+          "type": "licensing",
+          "detail": "The AGPL licence would require releasing Orbit's source code.",
+          "evidence": [{ "kind": "slack_thread", "summary": "Legal review thread in #orbit-eng" }]
+        }
+      ],
+      "evidence": [{ "kind": "slack_thread", "summary": "Legal review thread in #orbit-eng" }],
+      "conditions": [{ "description": "The library is offered under a commercial or permissive licence", "met": false }],
+      "hoursSpent": 6,
+      "authors": ["Dana"],
+      "sourceMessageIds": ["msg-pdf-result"],
+      "entityIds": ["ent-pdf"],
+      "status": "active",
+      "startedAt": "2026-09-01T10:00:00Z",
+      "endedAt": "2026-09-02T09:30:00Z"
+    },
+    {
+      "_id": "att-cheap-summary",
+      "projectId": "orbit",
+      "goal": "Automatic ticket summaries",
+      "approach": "The cheapest available language model for ticket summarisation",
+      "outcome": "failed",
+      "blockers": [
+        {
+          "type": "performance",
+          "detail": "Only 61 percent of summaries were judged accurate on the team eval set.",
+          "evidence": [{ "kind": "benchmark", "summary": "61% accuracy on 50 labelled tickets" }]
+        }
+      ],
+      "evidence": [{ "kind": "benchmark", "summary": "61% accuracy on 50 labelled tickets" }],
+      "conditions": [{ "description": "A cheap model reaches 85 percent on the same eval set", "met": false }],
+      "hoursSpent": 5,
+      "authors": ["Sam"],
+      "sourceMessageIds": ["msg-summary-result"],
+      "entityIds": ["ent-llm"],
+      "status": "active",
+      "startedAt": "2026-09-08T10:00:00Z",
+      "endedAt": "2026-09-09T14:05:00Z"
+    }
+  ],
+  "decisions": [
+    { "_id": "dec-sessions", "projectId": "orbit", "title": "Use server sessions for auth", "rationale": "Simplest option for the first prototype.", "status": "superseded", "supersededBy": "dec-jwt", "authors": ["Marco"], "sourceMessageIds": [], "entityIds": ["ent-auth"], "decidedAt": "2026-08-14T10:00:00Z" },
+    { "_id": "dec-jwt", "projectId": "orbit", "title": "Switch auth to JWT", "rationale": "Stateless tokens for the serverless API.", "status": "superseded", "supersededBy": "dec-better-auth", "authors": ["Marco"], "sourceMessageIds": [], "entityIds": ["ent-auth"], "decidedAt": "2026-08-21T10:00:00Z" },
+    { "_id": "dec-better-auth", "projectId": "orbit", "title": "Use Better Auth sessions", "rationale": "JWT revocation was painful; Better Auth gives revocable sessions with little code.", "status": "active", "authors": ["Marco", "Priya"], "sourceMessageIds": [], "entityIds": ["ent-auth"], "decidedAt": "2026-09-04T10:00:00Z" },
+    { "_id": "dec-sse", "projectId": "orbit", "title": "Use Server-Sent Events for live board updates", "rationale": "Works inside the serverless timeout with reconnects.", "status": "active", "authors": ["Priya"], "sourceMessageIds": ["msg-ws-result"], "entityIds": ["ent-sse"], "decidedAt": "2026-08-19T17:00:00Z" },
+    { "_id": "dec-atlas-search", "projectId": "orbit", "title": "Use Atlas Search for task search", "rationale": "Indexed full-text search with fuzzy matching; p95 under 80ms in the same benchmark.", "status": "active", "authors": ["Marco"], "sourceMessageIds": ["msg-search-result"], "entityIds": ["ent-atlas-search"], "decidedAt": "2026-08-27T12:00:00Z" },
+    { "_id": "dec-app-runner", "projectId": "orbit", "title": "Move the realtime service to AWS App Runner", "rationale": "A long-running container for realtime traffic.", "status": "active", "authors": ["Priya"], "sourceMessageIds": ["msg-apprunner"], "entityIds": ["ent-app-runner"], "decidedAt": "2026-09-24T15:00:00Z" }
+  ],
+  "entities": [
+    { "_id": "ent-websockets", "projectId": "orbit", "name": "WebSockets", "kind": "technology" },
+    { "_id": "ent-serverless", "projectId": "orbit", "name": "Serverless functions", "kind": "technology" },
+    { "_id": "ent-sse", "projectId": "orbit", "name": "Server-Sent Events", "kind": "technology" },
+    { "_id": "ent-postgres", "projectId": "orbit", "name": "Postgres", "kind": "technology" },
+    { "_id": "ent-atlas-search", "projectId": "orbit", "name": "Atlas Search", "kind": "service" },
+    { "_id": "ent-pdf", "projectId": "orbit", "name": "PDF export", "kind": "feature" },
+    { "_id": "ent-llm", "projectId": "orbit", "name": "Ticket summaries", "kind": "feature" },
+    { "_id": "ent-auth", "projectId": "orbit", "name": "Authentication", "kind": "feature" },
+    { "_id": "ent-app-runner", "projectId": "orbit", "name": "AWS App Runner", "kind": "service" }
+  ],
+  "edges": [
+    { "_id": "edge-ws-sse", "projectId": "orbit", "kind": "alternative_to", "from": { "kind": "decision", "id": "dec-sse" }, "to": { "kind": "attempt", "id": "att-websockets" } },
+    { "_id": "edge-like-atlas", "projectId": "orbit", "kind": "alternative_to", "from": { "kind": "decision", "id": "dec-atlas-search" }, "to": { "kind": "attempt", "id": "att-postgres-like" } },
+    { "_id": "edge-sessions-jwt", "projectId": "orbit", "kind": "superseded_by", "from": { "kind": "decision", "id": "dec-sessions" }, "to": { "kind": "decision", "id": "dec-jwt" } },
+    { "_id": "edge-jwt-better-auth", "projectId": "orbit", "kind": "superseded_by", "from": { "kind": "decision", "id": "dec-jwt" }, "to": { "kind": "decision", "id": "dec-better-auth" } },
+    { "_id": "edge-ws-serverless", "projectId": "orbit", "kind": "blocked_by", "from": { "kind": "attempt", "id": "att-websockets" }, "to": { "kind": "entity", "id": "ent-serverless" } },
+    { "_id": "edge-apprunner-ws", "projectId": "orbit", "kind": "unblocks", "from": { "kind": "decision", "id": "dec-app-runner" }, "to": { "kind": "attempt", "id": "att-websockets" }, "explanation": "Realtime now runs on a long-running App Runner service, so the serverless function timeout no longer applies." }
+  ],
+  "harness": {
+    "_id": "harness-orbit-v1",
+    "projectId": "orbit",
+    "version": 1,
+    "active": true,
+    "prompts": {
+      "classify": "Label the message as decision, attempt_start, attempt_result, intent, question, or noise. Reply with the label only.",
+      "extract": "Extract the attempt or decision described. Use only facts stated in the messages. Blocker types: technical_limit, cost, performance, library_bug, licensing, org_constraint, time.",
+      "judge": "Given a new plan and a past failed attempt, decide whether the plan would hit the same blocker. If the plan meets one of the attempt's conditions, it is not a match. Reply with match, confidence 0-1, and a one-sentence reason.",
+      "answer": "Answer from the cited records only. Say which decisions are current and which are superseded. If the records do not answer the question, say so.",
+      "conditions": "Given a new decision and a past attempt's conditions, decide which conditions the decision satisfies."
+    },
+    "retrieval": { "k": 8, "minScore": 0.72, "hybridWeight": 0.3 },
+    "mergeWindowDays": 7,
+    "routing": {
+      "classify": "openai/gpt-5-mini",
+      "extract": "openai/gpt-5-mini",
+      "judge": "anthropic/claude-sonnet-4.5",
+      "reflect": "anthropic/claude-sonnet-4.5",
+      "embed": "text-embedding-3-small"
+    },
+    "createdAt": "2026-09-26T00:00:00Z"
+  }
+}
