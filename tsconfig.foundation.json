@@ -7,10 +7,17 @@
     "src/types.ts",
     "src/shared/**/*.ts",
     "src/fixtures/**/*.ts",
-    "src/db/schema.ts"
+    "src/db/schema.ts",
+    "src/pipeline/**/*.ts",
+    "src/connectors/**/*.ts",
+    "src/api/**/*.ts",
+    "src/worker/**/*.ts",
+    "src/seed/**/*.ts"
   ],
   "exclude": [
     "src/scripts/**/*.ts",
-    "src/db/client.ts"
+    "src/db/client.ts",
+    "src/pipeline/mongo-store.ts",
+    "src/pipeline/mongo-checkpointer.ts"
   ]
 }

@@ -37,6 +37,28 @@ fixture, so:
 
 ---
 
+## Person 1 — ingestion lane (A1–A9)
+
+"Getting data in": sources → the capture pipeline → Atlas. See
+[`docs/ingestion-lane.md`](docs/ingestion-lane.md) for the full write-up.
+
+| # | Deliverable | Files |
+| --- | --- | --- |
+| **A1** | LangGraph classify + extract (prompt from `getActiveHarness`) | `src/pipeline/graph.ts`, `providers.ts` |
+| **A2** | `merge_attempt` / `embed_and_store` / `link` + MongoDBSaver checkpoints | `src/pipeline/*`, `mongo-store.ts`, `mongo-checkpointer.ts` |
+| **A3** | Slack: Events API, backfill, `/brain deadend` | `src/connectors/slack.ts`, `crypto.ts` |
+| **A4** | GitHub: webhooks + backfill (closed PRs, reverts, wontfix) | `src/connectors/github.ts` |
+| **A5** | CI/logs: `workflow_run` webhook, CloudWatch→S3, evidence | `src/connectors/ci.ts`, `evidence-store.ts` |
+| **A6** | Manual capture API `POST /api/capture` | `src/api/capture.ts` |
+| **A7** | Seed ~150 Orbit messages through the real pipeline | `src/seed/*`, `src/scripts/seed-orbit.ts` |
+| **A8** | Worker (App Runner/Lambda) + EventBridge schedule | `src/worker/*` |
+| **A9** | Linear time logs → `hoursSpent` | `src/connectors/linear.ts` |
+
+The shared `ingest()` now delegates to the real pipeline. Everything runs offline via
+in-memory seams (`InMemoryStore`, `InMemoryCheckpointer`, `offlineProvider`); the Atlas
+(`MongoStore`, `MongoCheckpointer`), S3, and OpenAI/OpenRouter adapters drop in after
+`npm install`.
+
 ## Getting started
 
 ### 1. Prerequisites (S5)
@@ -110,6 +132,7 @@ later produced by running seed messages through the pipeline (`A7` / `f-db-02`).
 | `node dist/scripts/create-indexes.js` | Create Atlas collections + indexes (S2) |
 | `node dist/scripts/generate-fixture.js` | Regenerate `fixtures/orbit.json` from typed source |
 | `node dist/scripts/load-fixtures.js` | Load the Orbit fixture into Atlas (S3) |
+| `node dist/scripts/seed-orbit.js` | Seed ~150 Orbit messages through the real pipeline (A7) |
 
 ## Repository conventions
 

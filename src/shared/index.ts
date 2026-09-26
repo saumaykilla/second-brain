@@ -22,17 +22,15 @@ import type {
   HarnessConfig,
   IngestInput,
   IngestResult,
-  Message,
-  MessageKind,
 } from "../types.js";
 import {
   attempts as orbitAttempts,
-  decisions as orbitDecisions,
   evidence as orbitEvidence,
   harnessV1,
   PROJECT_ID,
 } from "../fixtures/orbit.js";
 import { fakeEmbed } from "../fixtures/embedding.js";
+import { ingestMessage } from "../pipeline/index.js";
 
 /** cosine similarity of two equal-length vectors. */
 function cosine(a: number[], b: number[]): number {
@@ -127,53 +125,16 @@ export async function getActiveHarness(
 }
 
 /**
- * PLACEHOLDER ingest() — R7–R10.
+ * ingest() — R7–R10. NOW REAL (A1/A2).
  *
- * Fake behavior: keyword-classifies the message and, for attempt/decision kinds,
- * returns a matching Orbit fixture record so downstream code has real shapes to
- * render. The real version runs the LangGraph classify → extract → merge → embed
- * → link pipeline (A1, A2).
+ * Runs the message through the capture pipeline: classify → extract →
+ * merge_attempt → embed_and_store → link, with checkpoints (see src/pipeline).
+ * Uses offline deps by default so it works with no network; pass Atlas-backed
+ * deps in production via ingestMessage(input, { store, checkpointer, provider }).
  */
 export async function ingest(input: IngestInput): Promise<IngestResult> {
-  const kind = classifyPlaceholder(input.text);
-  const nowIso = input.ts ?? new Date().toISOString();
-
-  const message: Message = {
-    projectId: input.projectId,
-    source: input.source,
-    author: input.author,
-    text: input.text,
-    ts: nowIso,
-    threadKey: input.threadKey,
-    kind,
-    meta: input.meta,
-    createdAt: nowIso,
-    updatedAt: nowIso,
-  };
-
-  const result: IngestResult = { message, kind, merged: false };
-
-  if (kind === "attempt_start" || kind === "attempt_result") {
-    result.attempt = orbitAttempts.find((a) => a.projectId === input.projectId);
-    result.merged = kind === "attempt_result";
-  } else if (kind === "decision") {
-    result.decision = orbitDecisions.find((d) => d.projectId === input.projectId);
-  }
-
-  return result;
-}
-
-/** Extremely small keyword classifier so ingest() has a plausible kind (R7). */
-function classifyPlaceholder(text: string): MessageKind {
-  const t = text.toLowerCase();
-  if (/\?$|^(why|what|how|when|who)\b/.test(t)) return "question";
-  if (/\b(decided|we'll use|going with|switch to|adopt)\b/.test(t)) return "decision";
-  if (/\b(didn't work|failed|gave up|abandoned|dropped|blocked)\b/.test(t))
-    return "attempt_result";
-  if (/\b(i'll try|going to try|attempt|let me add|spike)\b/.test(t))
-    return "attempt_start";
-  if (/\b(i'm going to|about to|planning to|thinking of adding)\b/.test(t))
-    return "intent";
-  if (t.trim().length < 12) return "noise";
-  return "intent";
+  // Real implementation (A1/A2): run the capture pipeline. The trace is dropped
+  // to keep the IngestResult contract shape unchanged (S1).
+  const { message, kind, attempt, decision, merged } = await ingestMessage(input);
+  return { message, kind, attempt, decision, merged };
 }

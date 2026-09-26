@@ -11,8 +11,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:foundation": "tsc -p tsconfig.foundation.json --noEmit",
     "build": "tsc -p tsconfig.json",
-    "db:indexes": "node --loader tsx dist/scripts/create-indexes.js",
+    "db:indexes": "node dist/scripts/create-indexes.js",
     "db:load-fixtures": "node dist/scripts/load-fixtures.js",
+    "seed:orbit": "node dist/scripts/seed-orbit.js",
     "lint": "echo \"lint: configure eslint after `npm install`\"",
     "test": "echo \"tests: add vitest after `npm install`\""
   },
