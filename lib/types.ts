@@ -170,6 +170,10 @@ export interface ProjectFixture {
   entities: Entity[]
   edges: Edge[]
   harness: HarnessConfig
+  /** Optional demo-seed harness version history for the Lab/Impact screens. */
+  harnessHistory?: HarnessConfig[]
+  /** Optional demo-seed warnings so Impact shows real numbers without a database. */
+  warnings?: Warning[]
 }
 
 // Contract results
