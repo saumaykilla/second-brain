@@ -4,11 +4,14 @@ import { useState } from 'react'
 import { PageHeader, RecordCard, StatusMark, EmptyState, ErrorState, LoadingState } from '@/components/states'
 
 interface Citation {
-  kind: 'attempt' | 'decision'
+  kind: 'attempt' | 'decision' | 'doc'
   id: string
   title: string
   status: string
   supersededBy?: string
+  url?: string
+  provider?: 'github' | 'notion'
+  excerpt?: string
 }
 
 interface AskResponse {
@@ -19,10 +22,7 @@ interface AskResponse {
   error?: string
 }
 
-const EXAMPLES = [
-  'Why did we not use Postgres for search?',
-  'What authentication does Orbit use?',
-]
+const EXAMPLES = ['Why did we drop that approach?', 'How does our API handle authentication?']
 
 export default function AskPage() {
   const [question, setQuestion] = useState('')
@@ -38,7 +38,7 @@ export default function AskPage() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectId: 'orbit', question }),
+        body: JSON.stringify({ question }),
       })
       const data = (await res.json()) as AskResponse
       if (!res.ok || !data.ok) throw new Error(data.error ?? 'Ask failed')
@@ -58,7 +58,7 @@ export default function AskPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Ask the brain"
-        description="Ask why the team decided or rejected something. Answers cite the decision or attempt they come from, and never present a superseded decision as current."
+        description="Ask about the project. Answers come from recorded decisions and attempts and from the Notion pages and GitHub repositories connected on Sources. Every answer cites where it came from and never presents a superseded decision as current."
       />
 
       <form onSubmit={onAsk} className="flex flex-col gap-3">
@@ -98,7 +98,10 @@ export default function AskPage() {
 
       {status === 'done' && result?.unsupported ? (
         <EmptyState title="Not enough in memory">
-          <p>I could not find a decision or attempt that answers that, so I will not guess.</p>
+          <p>
+            I could not find a decision, attempt, or connected page that answers that, so I will not guess. Connect more on
+            Sources if the answer lives in Notion or GitHub.
+          </p>
         </EmptyState>
       ) : null}
 
@@ -112,14 +115,33 @@ export default function AskPage() {
             {result.citations.map((c) => (
               <li key={`${c.kind}-${c.id}`}>
                 <RecordCard>
-                  <div className="flex items-center justify-between gap-2">
-                    <StatusMark mark={markFor(c) as never} />
-                    <code className="font-mono text-xs text-muted-foreground">{c.id}</code>
-                  </div>
-                  <p className="font-medium">{c.title}</p>
-                  {c.status === 'superseded' && c.supersededBy ? (
-                    <p className="text-sm text-muted-foreground">Superseded by {c.supersededBy}. Not the current decision.</p>
-                  ) : null}
+                  {c.kind === 'doc' ? (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {c.provider === 'github' ? 'GitHub' : 'Notion'}
+                        </span>
+                        {c.url ? (
+                          <a href={c.url} target="_blank" rel="noreferrer" className="text-sm underline underline-offset-4">
+                            Open
+                          </a>
+                        ) : null}
+                      </div>
+                      <p className="font-medium">{c.title}</p>
+                      {c.excerpt ? <blockquote className="border-l-2 border-border pl-3 text-sm text-muted-foreground">{c.excerpt}</blockquote> : null}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between gap-2">
+                        <StatusMark mark={markFor(c) as never} />
+                        <code className="font-mono text-xs text-muted-foreground">{c.id}</code>
+                      </div>
+                      <p className="font-medium">{c.title}</p>
+                      {c.status === 'superseded' && c.supersededBy ? (
+                        <p className="text-sm text-muted-foreground">Superseded by {c.supersededBy}. Not the current decision.</p>
+                      ) : null}
+                    </>
+                  )}
                 </RecordCard>
               </li>
             ))}

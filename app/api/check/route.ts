@@ -1,5 +1,5 @@
 import { checkDeadEnds } from '@/lib/contracts'
-import { getFixture } from '@/lib/fixtures'
+import { defaultProjectId } from '@/lib/env'
 import type { Evidence } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: 'invalid_json' }, { status: 400 })
   }
 
-  const projectId = body.projectId?.trim() || 'orbit'
+  const projectId = body.projectId?.trim() || defaultProjectId()
   const text = body.text?.trim()
   if (!text) {
     return Response.json({ ok: false, error: 'text is required' }, { status: 400 })
@@ -47,6 +47,5 @@ export async function POST(request: Request) {
     projectId,
     matched: enriched.length > 0,
     matches: enriched,
-    project: getFixture(projectId)?.project ?? null,
   })
 }

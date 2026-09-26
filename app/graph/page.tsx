@@ -25,7 +25,7 @@ export default function GraphPage() {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch('/api/graph?projectId=orbit')
+        const res = await fetch('/api/graph')
         setData((await res.json()) as GraphResponse)
         setStatus('done')
       } catch {
@@ -60,7 +60,7 @@ export default function GraphPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Memory graph"
-        description="Decisions, attempts, and entities connected by caused-by, superseded-by, alternative-to, blocked-by, and unblocks edges. The App Runner decision unblocks the WebSockets dead end."
+        description="Your project's decisions, attempts, and entities connected by caused-by, superseded-by, alternative-to, blocked-by, and unblocks edges."
       />
 
       {status === 'loading' ? <LoadingState label="Building graph\u2026" /> : null}
@@ -68,7 +68,9 @@ export default function GraphPage() {
 
       {status === 'done' && data ? (
         data.nodes.length === 0 ? (
-          <EmptyState title="No graph data" />
+          <EmptyState title="Nothing to draw yet">
+            <p>The graph fills in as decisions and attempts are captured for this project.</p>
+          </EmptyState>
         ) : (
           <div className="flex flex-col gap-4">
             <div className="overflow-x-auto rounded-md border border-border">

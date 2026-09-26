@@ -1,8 +1,9 @@
 import { answerQuestion } from '@/lib/answer'
+import { defaultProjectId } from '@/lib/env'
 
 export const dynamic = 'force-dynamic'
 
-// POST /api/ask { projectId?, question } -> cited answer (f-b-03).
+// POST /api/ask { projectId?, question } -> cited answer (f-b-03, f-a-10).
 export async function POST(request: Request) {
   let body: { projectId?: string; question?: string }
   try {
@@ -10,7 +11,7 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false, error: 'invalid_json' }, { status: 400 })
   }
-  const projectId = body.projectId?.trim() || 'orbit'
+  const projectId = body.projectId?.trim() || defaultProjectId()
   const question = body.question?.trim()
   if (!question) {
     return Response.json({ ok: false, error: 'question is required' }, { status: 400 })

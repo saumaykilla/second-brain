@@ -7,6 +7,7 @@ export const NAV_ITEMS = [
   { href: '/', label: 'Timeline' },
   { href: '/capture', label: 'Capture' },
   { href: '/ask', label: 'Ask' },
+  { href: '/sources', label: 'Sources' },
   { href: '/check', label: 'Check' },
   { href: '/graph', label: 'Graph' },
   { href: '/lab', label: 'Lab' },

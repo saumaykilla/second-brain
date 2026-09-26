@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { Attempt, Decision, ProjectFixture } from '@/lib/types'
+import type { Attempt, Decision } from '@/lib/types'
 import { RecordCard, StatusMark, markFor } from './states'
 
-// Timeline + dead-end detail (f-b-04).
+// Timeline + dead-end detail (f-b-04, f-b-10).
 // Failed attempts show a red "dead end" mark, revisitable ones amber, decisions
 // green (current) or grey (superseded). Opening a dead end reveals goal,
 // approach, blockers with evidence, conditions, hours, and the alternative.
@@ -13,10 +13,10 @@ type Row =
   | { kind: 'attempt'; when: string; data: Attempt }
   | { kind: 'decision'; when: string; data: Decision }
 
-export function Timeline({ fixture }: { fixture: ProjectFixture }) {
+export function Timeline({ attempts, decisions }: { attempts: Attempt[]; decisions: Decision[] }) {
   const rows: Row[] = [
-    ...fixture.attempts.map((a) => ({ kind: 'attempt' as const, when: a.startedAt, data: a })),
-    ...fixture.decisions.map((d) => ({ kind: 'decision' as const, when: d.decidedAt, data: d })),
+    ...attempts.map((a) => ({ kind: 'attempt' as const, when: a.startedAt, data: a })),
+    ...decisions.map((d) => ({ kind: 'decision' as const, when: d.decidedAt, data: d })),
   ].sort((a, b) => a.when.localeCompare(b.when))
 
   return (

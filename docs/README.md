@@ -33,6 +33,7 @@ Each lane has at most one `in_progress` feature at a time. `lib/types.ts` and th
 | [f-a-07](f-a-07.md) | Revisitable Conditions | f-a-03 |
 | [f-a-08](f-a-08.md) | Evidence Storage | f-a-03 |
 | [f-a-09](f-a-09.md) | AWS Hosting and Worker | f-a-03 |
+| [f-a-10](f-a-10.md) | Connect Notion and GitHub, then ask over them | f-sh-01, f-sh-02 |
 
 ## Person 2 — Recall (Atlas to answers and UI)
 
@@ -47,6 +48,7 @@ Each lane has at most one `in_progress` feature at a time. `lib/types.ts` and th
 | [f-b-07](f-b-07.md) | Reflection and Promotion | f-b-06 |
 | [f-b-08](f-b-08.md) | Harness Lab and Impact | f-b-07, f-sh-05 |
 | [f-b-09](f-b-09.md) | Memory Graph | f-b-04 |
+| [f-b-10](f-b-10.md) | Screens read project memory, not sample data | f-sh-05, f-a-10 |
 
 ## Contracts between lanes
 

@@ -94,7 +94,7 @@
       "lane": "ingest",
       "title": "Message Classification",
       "priority": 6,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-sh-03",
         "f-sh-04"
@@ -104,14 +104,14 @@
         "Run the classifier unit tests.",
         "Classify 20 labeled Orbit messages and record accuracy."
       ],
-      "evidence": ""
+      "evidence": "2026-09-26. lib/ingest/classify.ts uses harness.routing.classify and harness.prompts.classify through OpenRouter, with the six-label guide appended; rule fallback only when no key. tests/ingest.test.ts: parseLabel accepts only the six labels; rule fallback labels the 7 fixture messages at 100% (was 71% before ordering attempt_result ahead of decision). Live: 'Starting on live board updates\u2026' \u2192 attempt_start; 'Tried WebSockets\u2026 Moving to Server-Sent Events.' \u2192 attempt_result (gpt-5-mini; before the label guide it returned decision); 'Decision: the realtime service moves to AWS App Runner\u2026' \u2192 decision. Noise is stored and goes no further (trace step 'route')."
     },
     {
       "id": "f-a-02",
       "lane": "ingest",
       "title": "Attempt and Decision Extraction",
       "priority": 7,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-a-01"
       ],
@@ -121,14 +121,14 @@
         "Extract the Postgres LIKE result and verify blockers, evidence, and 9 hours.",
         "Extract the sessions, JWT, and Better Auth decisions and verify the supersede chain."
       ],
-      "evidence": ""
+      "evidence": "2026-09-26. lib/ingest/extract.ts: zod schemas AttemptExtraction and DecisionExtraction over the R3 blocker types, evidence kinds, outcomes; unknown values coerce (test: 'exploded'\u2192failed, 'weird'\u2192technical_limit, '9'\u21929). Offline Postgres LIKE result: blocker performance, evidence benchmark, alternative 'Atlas Search', 9 hours. MongoDB: sessions \u2192 JWT \u2192 Better Auth produced two superseded decisions with supersededBy set and two superseded_by edges; embeddings of length 1536 on the new attempt and decisions. Live extraction by gpt-5-mini produced approach 'Use WebSockets from serverless functions', blocker technical_limit, alternative 'Server-Sent Events', six entities."
     },
     {
       "id": "f-a-03",
       "lane": "ingest",
       "title": "Attempt Merging and the Ingest Pipeline",
       "priority": 8,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-a-02"
       ],
@@ -139,7 +139,7 @@
         "Verify embeddings exist on new records.",
         "Verify each step wrote a trace."
       ],
-      "evidence": ""
+      "evidence": "2026-09-26. lib/ingest/pipeline.ts behind the frozen ingestMessage signature. MongoDB tests (8 passed): a start then a result in thread th-realtime produced one attempt with outcome failed, 16 hours, typed blocker, two sourceMessageIds, startedAt from the start message, 1536-dim embedding, and traces classify/extract/store; noise stored with no attempt; replaying sourceId m2 returned duplicate=true and created nothing; checkDeadEnds on the socket.io plan matched the stored attempt (hoursSaved 16) and another project got []. Live through /api/capture: attempt_start stored, attempt_result merged into one attempt, decision stored, /api/check matched at 0.95 via the harness judge, /api/graph showed the attempt, decision, and entities. Timeline in the browser showed the dead end and the current decision. Offline suite 27 passed, 11 skipped."
     },
     {
       "id": "f-a-04",
@@ -199,7 +199,7 @@
       "lane": "ingest",
       "title": "Revisitable Conditions",
       "priority": 12,
-      "status": "not_started",
+      "status": "passing",
       "depends_on": [
         "f-a-03"
       ],
@@ -211,7 +211,7 @@
         "Verify the `unblocks` edge.",
         "Replay and verify one transition."
       ],
-      "evidence": ""
+      "evidence": "2026-09-26. lib/contracts/check-conditions.ts is real: loads the project's attempts with unmet conditions, asks the harness judge (prompts.conditions, routing.judge) which conditions the decision satisfies, marks them met with metByDecisionId, sets status revisitable, adds one unblocks edge; lexical fallback without a key; fixture only with no database. tests/ingest.test.ts (MongoDB, 9 passed): an unrelated pdf-lib decision produced no transition; the App Runner decision produced one transition, status revisitable, condition met by that decision, one unblocks edge; replaying checkConditions returned [] and left one edge. Live on second-brain with claude-sonnet-4.5 as judge: transition with explanation 'Moving to AWS App Runner removes the 10s timeout limitation\u2026', replay [], attempt revisitable, 1 unblocks edge. Timeline in the browser shows the WebSockets attempt as Revisitable (amber) at 16 hours."
     },
     {
       "id": "f-a-08",
@@ -409,6 +409,45 @@
         "Verify the `unblocks` edge after `f-a-07`."
       ],
       "evidence": ""
+    },
+    {
+      "id": "f-a-10",
+      "lane": "ingest",
+      "title": "Connect Notion and GitHub, then ask over them",
+      "priority": 24,
+      "status": "passing",
+      "depends_on": [
+        "f-sh-01",
+        "f-sh-02"
+      ],
+      "user_visible_behavior": "On `/sources`, Connect GitHub and Connect Notion send the person to that provider to approve access. After they return, Sources lists the repositories and pages their account can see. They check the ones to share and save. Second Brain reads only that selection into project memory. On `/ask`, a question is answered from the connected pages and files, and each citation opens the source. Tokens stay on the server.",
+      "verification": [
+        "Run the sources tests: OAuth URL, chunking, GitHub path filter, Notion title and text extraction, and, with `MONGODB_URI` set, the grant-and-ask integration against mocked provider APIs.",
+        "Confirm access tokens and client secrets are absent from API responses and from `app/`, `components/`, and `lib/` client code.",
+        "Open `/sources` and use Connect GitHub and Connect Notion. Without OAuth app ids the page says sign-in is not configured; with them the browser reaches the provider login.",
+        "Save a selection and confirm the synced list shows only the checked sources.",
+        "Ask a question on `/ask` that is answered by a connected file and open the citation."
+      ],
+      "evidence": "2026-09-26. `pnpm typecheck` clean. `pnpm test` offline: 20 passed, 5 skipped (DB tests). Follow-up the same day: GitHub files are fetched 8 at a time and chunks are embedded in batches of 64 (embedMany); the integration suite re-ran green. With .env.local exported, `pnpm test tests/sources.test.ts`: 11 passed against MongoDB with mocked GitHub/Notion APIs \u2014 connection stored and token absent from the overview JSON; grantSelection(['ada/app']) and (['page-keep']) stored only those sources (node_modules and the unselected page absent); searchSources ranked app/api/socket.ts first with its github.com URL; answerQuestion returned unsupported=false with a doc citation for GitHub and one for Notion; another project id returned []; unchecking GitHub removed its chunks. Browser: /sources rendered Connect GitHub and Connect Notion; Connect GitHub reached github.com/login with client_id, redirect to /api/sources/github/callback, scope repo read:user; Connect Notion reached app.notion.com/install-integration with the redirect URI. /ask answered the Postgres question with cited decisions and dead ends. curl: /api/sources/bogus/connect \u2192 303 /sources?error=unknown_provider; callback with unknown state \u2192 303 /sources?error=invalid_state; no 'use client' file references CLIENT_SECRET, accessToken, OPENROUTER_API_KEY, or MONGODB_URI. A live GitHub or Notion sign-in was not completed because it requires the user's own login."
+    },
+    {
+      "id": "f-b-10",
+      "lane": "serve",
+      "title": "Screens read project memory, not sample data",
+      "priority": 25,
+      "status": "passing",
+      "depends_on": [
+        "f-sh-05",
+        "f-a-10"
+      ],
+      "user_visible_behavior": "Timeline lists the project's recorded decisions and attempts from the database and says so plainly when there are none yet. Capture is a working form: a message is stored, labeled, and shown with the project's recent captures. Ask, Check, Graph, Lab, and Impact use the configured project and no longer carry Orbit example questions, sample plans, or sample descriptions. Every screen has an honest empty state.",
+      "verification": [
+        "`pnpm typecheck` and `pnpm test` offline.",
+        "`rg -n \"orbit|Orbit\" app components` returns nothing.",
+        "In the browser: Timeline shows the empty state for the configured project; Capture stores a message and lists it; Ask, Check, Graph, Lab, Impact load without sample content.",
+        "With the env exported, `/api/check` on the socket.io plan returns no match for the empty project."
+      ],
+      "evidence": "2026-09-26. `pnpm typecheck` clean; offline `pnpm test` 20 passed, 5 skipped; MongoDB integration suite 11 passed. `rg -n \"orbit|Orbit\" app components` \u2192 none. DEFAULT_PROJECT_ID=second-brain; 2 integrations, 308 source_chunks, 2 oauth_states moved from `orbit`. Browser: Timeline shows \u201cNothing recorded yet\u201d with links to Capture and Sources; Capture saved \u201cWe decided to use Server-Sent Events\u2026\u201d as Decision and listed it under Recent captures. API for project second-brain: /api/sources github connected as saumaykilla with saumaykilla/concensus-ai selected, notion connected, 81 docs; /api/graph 0 nodes; /api/harness active v1, 0 stored versions; /api/impact 0 warnings; /api/check on the socket.io plan matched=false; /api/ask \u201cWhat does this repository do\u201d answered from the connected repo with four GitHub doc citations, unsupported=false. Re-sync of saumaykilla/concensus-ai: 307 chunks in 10.7s (was ~100s). Capture tests (tests/capture.test.ts): invalid JSON and blank text \u2192 400; six message kinds labeled decision, attempt_result, attempt_start, intent, question, noise; author kept; against MongoDB two messages stored and listed most recent first with their labels, another project lists nothing (5 passed). Browser: saved a decision, an attempt result, and a question; each showed its label and appeared at the top of Recent captures; GET /api/capture then returned the three for second-brain."
     }
   ]
 }

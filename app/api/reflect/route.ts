@@ -1,4 +1,5 @@
 import { getActiveHarness } from '@/lib/contracts/get-active-harness'
+import { defaultProjectId } from '@/lib/env'
 import { runEval } from '@/lib/eval/runner'
 import { proposeFromSignals, reflectAndPromote } from '@/lib/harness/reflection'
 import { promoteVersion, recordRejection } from '@/lib/harness/store'
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic'
 
 // POST /api/reflect { projectId? } -> run one reflection cycle (f-b-07, f-b-08).
 export async function POST(request: Request) {
-  let projectId = 'orbit'
+  let projectId = defaultProjectId()
   try {
     const body = (await request.json()) as { projectId?: string }
     if (body.projectId) projectId = body.projectId
