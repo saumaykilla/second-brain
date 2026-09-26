@@ -1,4 +1,179 @@
 {
   "project": "Second Brain",
-  "features": []
+  "features": [
+    {
+      "id": "f-aws-01",
+      "title": "Platform Foundation and Environments",
+      "priority": 1,
+      "status": "not_started",
+      "user_visible_behavior": "Users can open the application, receive a healthy response from the API, and see a clear service-unavailable state when a required dependency is unhealthy.",
+      "verification": [
+        "Run `./init.sh`.",
+        "Install dependencies using the repository-documented command.",
+        "Run the frontend and API build, lint, type-check, and test commands.",
+        "Start the local stack and verify the frontend and API health endpoints.",
+        "Temporarily withhold a required dependency configuration and verify a safe readiness failure.",
+        "Validate the AWS infrastructure definition without deploying production resources."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-01",
+      "title": "Company Identity and Membership",
+      "priority": 2,
+      "status": "not_started",
+      "user_visible_behavior": "An administrator creates a company, invites coworkers, assigns roles, and removes access; invited members sign in with Google and enter only their company workspace.",
+      "verification": [
+        "Run the backend authentication and authorization test suites.",
+        "Exercise company creation, invite acceptance, invite revocation, role change, member removal, and sign-out.",
+        "Attempt cross-company reads and writes with valid sessions and verify denial.",
+        "Verify the final-administrator safeguard.",
+        "Complete the Google sign-in and invitation flow in a browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-02",
+      "title": "Notion Knowledge Connection and Sync",
+      "priority": 3,
+      "status": "not_started",
+      "user_visible_behavior": "An administrator connects Notion, chooses approved sources, sees synchronization status, and can remove access; members can later receive answers linked to the approved originals.",
+      "verification": [
+        "Run unit tests for source selection, normalization, idempotency, and deletion handling.",
+        "Run integration tests against a controlled Notion test workspace.",
+        "Import a page and database, edit them, remove one, and verify each resulting knowledge state.",
+        "Simulate throttling and temporary Notion failures and verify bounded retries.",
+        "Verify company isolation with two connected test companies.",
+        "Complete connection, selection, status, and disconnection flows in a browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-ui-01",
+      "title": "App Shell and Company Administration",
+      "priority": 4,
+      "status": "not_started",
+      "user_visible_behavior": "Members land in a responsive company workspace with clear navigation; administrators can manage people, Notion sources, and company settings from dedicated screens.",
+      "verification": [
+        "Run frontend lint, type-check, component, and route tests.",
+        "Verify member and administrator navigation with separate test accounts.",
+        "Exercise loading, empty, populated, permission-denied, and API-failure states.",
+        "Test primary screens at desktop and mobile viewport widths in a browser.",
+        "Complete people, Notion source, company, and profile flows in the browser.",
+        "Run the configured accessibility checks for primary routes."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-03",
+      "title": "Meeting Scheduling and Lifecycle",
+      "priority": 5,
+      "status": "not_started",
+      "user_visible_behavior": "Members create instant or scheduled meetings inside Second Brain AI, invite coworkers, and see accurate upcoming, active, ended, and cancelled states.",
+      "verification": [
+        "Run meeting service and authorization unit tests.",
+        "Run API integration tests for create, update, cancel, start, end, list, and detail flows.",
+        "Attempt invalid lifecycle transitions and cross-company access.",
+        "Retry start/end events and verify idempotent state.",
+        "Create instant and scheduled meetings through the browser and verify list/detail updates."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-ui-02",
+      "title": "LiveKit Meeting Room",
+      "priority": 6,
+      "status": "not_started",
+      "user_visible_behavior": "Invited members join a Second Brain AI meeting with audio, video, screen sharing, participant controls, and a persistent meeting thread.",
+      "verification": [
+        "Run frontend and token-authorization tests.",
+        "Join the same test meeting with at least two authenticated participants.",
+        "Exercise microphone, camera, screen sharing, thread messaging, reconnect, leave, and end controls.",
+        "Attempt joining as an uninvited member and from another company.",
+        "Verify thread persistence after leaving and re-entering.",
+        "Exercise the room at desktop and mobile viewport widths in a browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-04",
+      "title": "AI Meeting Memory and Citations",
+      "priority": 7,
+      "status": "not_started",
+      "user_visible_behavior": "When a participant directly addresses CC, it answers concisely from approved company knowledge, cites the supporting sources, and admits when it cannot verify an answer.",
+      "verification": [
+        "Run direct-address, retrieval filtering, grounding, citation, and no-answer unit tests.",
+        "Run integration tests with controlled Notion and prior-meeting fixtures for two companies.",
+        "Ask supported, unsupported, ambiguous, and cross-company questions in a LiveKit test meeting.",
+        "Verify CC remains silent during unaddressed conversation.",
+        "Verify text-originated requests receive persistent thread responses.",
+        "Simulate retrieval and model-provider failures and verify safe degradation."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-05",
+      "title": "Structured Meeting Records",
+      "priority": 8,
+      "status": "not_started",
+      "user_visible_behavior": "After a meeting ends, participants can open its transcript, summary, decisions, action items, and citations; future retrieval can use the approved record.",
+      "verification": [
+        "Run transcript, extraction, citation, idempotency, authorization, and retry tests.",
+        "Complete a controlled multi-speaker meeting and compare the produced record with the known transcript.",
+        "Repeat the meeting-ended event and verify only one canonical record.",
+        "Force partial and failed processing states and verify recovery behavior.",
+        "Verify raw media deletion after processing.",
+        "Open the finished record in a browser and follow its transcript and knowledge citations."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-ui-03",
+      "title": "Company Knowledge Assistant",
+      "priority": 9,
+      "status": "not_started",
+      "user_visible_behavior": "Members ask company questions in a dedicated assistant, receive concise cited answers, inspect the supporting sources, and continue a conversation without losing context.",
+      "verification": [
+        "Run assistant conversation, authorization, retrieval, citation, and source-removal tests.",
+        "Ask controlled questions answerable by Notion, prior meetings, both source types, and neither.",
+        "Verify multi-turn context without allowing earlier conversation text to bypass source restrictions.",
+        "Remove an approved source and verify it no longer supports new answers.",
+        "Attempt cross-company conversation and source access.",
+        "Exercise desktop and mobile assistant flows in a browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-ui-04",
+      "title": "Channels and Direct Messages",
+      "priority": 10,
+      "status": "not_started",
+      "user_visible_behavior": "Members communicate in channels and direct messages, see unread activity, and reference meetings, records, approved knowledge, decisions, and action items.",
+      "verification": [
+        "Run channel, direct-message, membership, authorization, delivery, unread, and search tests.",
+        "Exercise public channel, private channel, and direct-message flows with multiple members.",
+        "Attempt private-channel, direct-message, and cross-company access as unauthorized users.",
+        "Test reconnect, duplicate-send, pagination, and concurrent-message behavior.",
+        "Verify references to meetings and knowledge preserve target authorization.",
+        "Complete desktop and mobile messaging flows in a browser."
+      ],
+      "evidence": ""
+    },
+    {
+      "id": "f-be-06",
+      "title": "Decision and Action System",
+      "priority": 11,
+      "status": "not_started",
+      "user_visible_behavior": "Members can see what was decided, who owns each action, its current status and reminders, and the source history connecting it to meetings, knowledge, and collaboration.",
+      "verification": [
+        "Run decision, action-item, history, reminder, authorization, and idempotency tests.",
+        "Promote extracted meeting outcomes into canonical records and verify source traceability.",
+        "Exercise assignment, status changes, due dates, completion, reopen, and archive flows.",
+        "Advance test time and verify reminder scheduling, deduplication, and preference handling.",
+        "Attempt unauthorized and cross-company reads and mutations.",
+        "Complete personal and company decision/action workflows in a browser."
+      ],
+      "evidence": ""
+    }
+  ]
 }
