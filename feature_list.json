@@ -5,7 +5,7 @@
       "id": "f-aws-01",
       "title": "Platform Foundation and Environments",
       "priority": 1,
-      "status": "not_started",
+      "status": "in_progress",
       "user_visible_behavior": "A developer can open ProjectBrain locally, see a healthy API response, and see a clear unavailable state when MongoDB or a required provider configuration is missing.",
       "verification": [
         "Run `./init.sh`.",
