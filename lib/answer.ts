@@ -8,16 +8,19 @@
 
 import { readEnv } from './env'
 import { getActiveHarness } from './contracts/get-active-harness'
-import { retrieveAttempts, retrieveDecisions } from './retrieval'
+import { retrieveAttempts, retrieveDecisions, retrieveDocuments } from './retrieval'
 import { getFixture } from './fixtures'
-import type { Attempt, Decision } from './types'
+import type { Attempt, Decision, KnowledgeDoc } from './types'
 
 export interface Citation {
-  kind: 'attempt' | 'decision'
+  kind: 'attempt' | 'decision' | 'document'
   id: string
   title: string
   status: string
   supersededBy?: string
+  /** For document citations: the source system and a link. */
+  source?: string
+  url?: string
 }
 
 export interface AnswerResult {
@@ -50,18 +53,20 @@ export async function answerQuestion(projectId: string, question: string): Promi
   const fixture = getFixture(projectId)
   const allDecisions = fixture?.decisions ?? []
 
-  const [decisionHits, attemptHits] = await Promise.all([
+  const [decisionHits, attemptHits, docHits] = await Promise.all([
     retrieveDecisions(projectId, question, harness),
     retrieveAttempts(projectId, question, harness),
+    retrieveDocuments(projectId, question, harness, { limit: 4 }),
   ])
 
   const topDecisions = decisionHits.slice(0, 3).map((h) => h.doc)
   const topAttempts = attemptHits.slice(0, 2).map((h) => h.doc)
+  const topDocs = docHits.slice(0, 4).map((h) => h.doc)
 
-  if (topDecisions.length === 0 && topAttempts.length === 0) {
+  if (topDecisions.length === 0 && topAttempts.length === 0 && topDocs.length === 0) {
     return {
       projectId,
-      answer: 'I could not find a decision or attempt in this project that answers that.',
+      answer: 'I could not find a decision, attempt, or document in this project that answers that.',
       citations: [],
       unsupported: true,
     }
@@ -81,16 +86,19 @@ export async function answerQuestion(projectId: string, question: string): Promi
   for (const a of topAttempts) {
     citations.push({ kind: 'attempt', id: a._id, title: a.approach, status: a.status })
   }
+  for (const doc of topDocs) {
+    citations.push({ kind: 'document', id: doc._id, title: doc.title, status: doc.kind, source: doc.source, url: doc.url })
+  }
 
   const key = readEnv().OPENROUTER_API_KEY
   const answer = key
-    ? await composeWithModel(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, harness, key)
-    : composeLocally(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts)
+    ? await composeWithModel(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, topDocs, harness, key)
+    : composeLocally(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, topDocs)
 
   return { projectId, answer, citations, unsupported: false }
 }
 
-function composeLocally(_question: string, decisions: Decision[], attempts: Attempt[]): string {
+function composeLocally(_question: string, decisions: Decision[], attempts: Attempt[], docs: KnowledgeDoc[]): string {
   const parts: string[] = []
   const current = decisions.find((d) => d.status === 'active') ?? decisions[0]
   if (current) {
@@ -103,6 +111,11 @@ function composeLocally(_question: string, decisions: Decision[], attempts: Atte
         `${a.alternative ? `, and chose ${a.alternative} instead` : ''}.`,
     )
   }
+  if (docs.length) {
+    parts.push(
+      `Related knowledge: ${docs.map((d) => `${d.title} (${d.source})`).slice(0, 3).join('; ')}.`,
+    )
+  }
   return parts.join(' ')
 }
 
@@ -110,6 +123,7 @@ async function composeWithModel(
   question: string,
   decisions: Decision[],
   attempts: Attempt[],
+  docs: KnowledgeDoc[],
   harness: { routing: { answer?: string; judge: string }; prompts: { answer: string } },
   key: string,
 ): Promise<string> {
@@ -126,7 +140,9 @@ async function composeWithModel(
             question,
             decisions: decisions.map((d) => ({ id: d._id, title: d.title, rationale: d.rationale, status: d.status })),
             attempts: attempts.map((a) => ({ id: a._id, approach: a.approach, outcome: a.outcome, alternative: a.alternative })),
-            instructions: 'Answer concisely and cite decision/attempt ids. Never present a superseded decision as current.',
+            documents: docs.map((d) => ({ id: d._id, title: d.title, source: d.source, text: d.text.slice(0, 800) })),
+            instructions:
+              'Answer concisely and cite decision/attempt/document ids. Use the documents for supporting context. Never present a superseded decision as current.',
           }),
         },
       ],

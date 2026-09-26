@@ -14,6 +14,12 @@ const schema = z.object({
   SLACK_BOT_TOKEN: optional,
   AWS_REGION: optional,
   EVIDENCE_BUCKET: optional,
+  // Knowledge integrations (ingest external data into the documents collection).
+  NOTION_TOKEN: optional,
+  GITHUB_TOKEN: optional,
+  GITHUB_REPOS: optional, // comma-separated owner/repo list to backfill
+  // Guards the ingest API routes so only you can trigger a pull.
+  INGEST_SECRET: optional,
 })
 
 export type Env = z.infer<typeof schema>
@@ -28,6 +34,10 @@ export const REQUIRED_BY_FEATURE: Record<string, EnvKey[]> = {
   'f-a-08': ['AWS_REGION', 'EVIDENCE_BUCKET'],
   'f-b-01': ['OPENAI_API_KEY', 'OPENROUTER_API_KEY'],
   'f-b-05': ['SLACK_BOT_TOKEN'],
+  // Knowledge ingestion features.
+  'ingest-notion': ['NOTION_TOKEN', 'OPENAI_API_KEY'],
+  'ingest-github': ['GITHUB_TOKEN', 'OPENAI_API_KEY'],
+  'ingest-slack': ['SLACK_BOT_TOKEN', 'OPENAI_API_KEY'],
 }
 
 export function readEnv(source: Record<string, string | undefined> = process.env): Env {
