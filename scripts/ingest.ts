@@ -24,10 +24,10 @@ async function main() {
   if (source === 'notion') {
     report = await ingestNotion(projectId, { limit: extra ? Number(extra) : undefined })
   } else if (source === 'github') {
-    const repos = extra ? extra.split(',').map((r) => r.trim()) : undefined
+    const repos = extra ? extra.split(',').map((r: string) => r.trim()) : undefined
     report = await ingestGithub(projectId, { repos })
   } else if (source === 'slack') {
-    const channels = (extra ?? '').split(',').map((c) => c.trim()).filter(Boolean)
+    const channels = (extra ?? '').split(',').map((c: string) => c.trim()).filter(Boolean)
     report = await ingestSlack(projectId, { channels })
   } else {
     console.error(`Unknown source: ${source}`)

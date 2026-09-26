@@ -45,7 +45,7 @@ interface GhCommit {
 function parseRepos(repos?: string[]): string[] {
   if (repos?.length) return repos
   const fromEnv = readEnv().GITHUB_REPOS
-  return fromEnv ? fromEnv.split(',').map((r) => r.trim()).filter(Boolean) : []
+  return fromEnv ? fromEnv.split(',').map((r: string) => r.trim()).filter(Boolean) : []
 }
 
 export async function ingestGithub(

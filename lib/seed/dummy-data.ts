@@ -71,8 +71,9 @@ export function generateDummy(projectId: string, count = 500): DummySet {
 
   // Slack messages: discussions, questions, decisions-in-passing.
   const slackCount = Math.round(count * 0.4)
-  const phrases = [
-    (t: (typeof TOPICS)[number]) => `has anyone looked at ${t.tech} for ${t.problem}? curious about latency`,
+  type Topic = (typeof TOPICS)[number]
+  const phrases: Array<(t: Topic) => string> = [
+    (t) => `has anyone looked at ${t.tech} for ${t.problem}? curious about latency`,
     (t) => `we should probably standardize on ${t.tech} for ${t.area}`,
     (t) => `${t.problem} is flaky again in staging, opening an incident`,
     (t) => `PSA: rolling out ${t.tech} behind a flag this week`,
