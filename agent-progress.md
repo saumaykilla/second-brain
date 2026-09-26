@@ -22,23 +22,32 @@ Confirmed product direction:
 - The seeded story is Orbit, a team task app, ingested through the real pipeline.
 - The memory graph and the nightly AWS reflection job are registered after the demo path.
 
+> Note (post-merge): `main` was merged into this branch and introduced a newer
+> `feature_list.json` with lane-based ids (`f-sh-*` shared, `f-a-*` ingest, `f-b-*`
+> serve). Older session logs below reference the previous ids (`f-aws-01`, `f-be-01`,
+> etc.); they are kept as an accurate historical record. The mapping for Person 1's
+> lane: A1→`f-a-01`/`f-a-02`, A2→`f-a-03`, A3→`f-a-06`, A5→`f-a-08`, A6→`f-a-04`,
+> A7→`f-a-05`, A8→`f-a-09`. Step 0 corresponds to `f-sh-04` (now `passing`) and
+> `f-sh-01`/`f-sh-02`/`f-sh-03`.
+
 ## Next best action
 
-Finish `f-aws-01`: run `npm install` on a machine with registry access, then run the
-full `npm run typecheck`, `create-indexes`, `load-fixtures`, and `seed:orbit` scripts
-against an Atlas cluster (with real OpenAI/OpenRouter keys) to gather the evidence the
-verification steps require for `f-aws-01`, `f-be-01`, and `f-db-02`. After that, complete
-the frontend/API scaffolding and health endpoints. Person 2 can begin the real
-`checkDeadEnds`/`checkConditions` (`f-be-02`, `f-be-05`) against the same foundation.
+Finish `f-sh-01` (Platform Foundation): run `pnpm install` on a machine with registry
+access, then `pnpm typecheck`, `pnpm test`, `pnpm build`, and the DB/seed scripts against
+an Atlas cluster (with real OpenAI/OpenRouter keys) to capture the acceptance evidence.
+Then land the `src/` ingestion lane against the real `MongoStore`/`MongoCheckpointer` and
+real provider so the `f-a-*` ingest features can be verified and marked `passing`. Person
+2 can begin the real `checkDeadEnds`/`checkConditions` (`f-b-01`, `f-a-07`) against the
+same foundation.
 
 ## In progress
 
-`f-aws-01` — Platform Foundation. Step-0 shared foundation (S1–S5) is scaffolded, and
-Person 1's ingestion lane (A1–A9) is now built on top of it (see session log). Not yet
-`passing`: Atlas-dependent verification, real model providers, and the Next.js/API
-health endpoints are still outstanding. The A1–A9 work advances `f-be-01`, `f-be-03`,
-`f-db-02`, and `f-aws-02`, but none is marked `passing` — their acceptance evidence
-needs a live Atlas cluster and real providers.
+`f-sh-01` — Platform Foundation and Environments. Person 1's ingestion lane (A1–A9) is
+implemented under `src/` on top of the shared foundation (`f-sh-04`, `passing`). None of
+the `f-a-*` ingest features is marked `passing` yet — their acceptance evidence needs a
+live Atlas cluster and real model providers. Note: a parallel foundation exists under
+`lib/` from the other track (merged from `main`); the two need reconciling into one
+canonical layout before the ingest features are verified.
 
 ## Known risks
 
