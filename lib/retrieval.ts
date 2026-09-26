@@ -8,7 +8,7 @@
 import { collection, isDbConfigured } from './db'
 import { getFixture } from './fixtures'
 import { cosineSimilarity, embed, embeddingProvider, localEmbed } from './models'
-import type { Attempt, Decision, HarnessConfig } from './types'
+import type { Attempt, Decision, DocSource, HarnessConfig, KnowledgeDoc } from './types'
 
 export interface Candidate<T> {
   doc: T
@@ -155,4 +155,62 @@ export async function retrieveDecisions(
     }))
     .sort((x, y) => y.score - x.score)
     .slice(0, k)
+}
+
+export interface RetrieveDocsOptions {
+  /** Restrict to one or more sources (notion / slack / github). */
+  sources?: DocSource[]
+  /** Override how many to return (defaults to the harness k). */
+  limit?: number
+}
+
+/**
+ * Retrieve knowledge documents (Notion / Slack / GitHub / seeded) most similar
+ * to the query. This is what makes Ask and knowledge search span the whole
+ * project brain, not just attempts and decisions. Uses Atlas Vector Search when
+ * a DB is configured, else an in-memory cosine fallback over any fixture docs.
+ */
+export async function retrieveDocuments(
+  projectId: string,
+  queryText: string,
+  harness: HarnessConfig,
+  options: RetrieveDocsOptions = {},
+): Promise<Array<Candidate<KnowledgeDoc>>> {
+  const { k, minScore } = harness.retrieval
+  const limit = options.limit ?? k
+
+  if (isDbConfigured()) {
+    const queryVector = await embed(queryText, harness)
+    const docs = await collection('documents')
+    const filter: Record<string, unknown> = { projectId }
+    if (options.sources?.length) filter.source = { $in: options.sources }
+    const cursor = docs.aggregate<KnowledgeDoc & { __score: number }>([
+      {
+        $vectorSearch: {
+          index: 'documents_vector',
+          path: 'embedding',
+          queryVector,
+          numCandidates: Math.max(100, limit * 10),
+          limit,
+          filter,
+        },
+      },
+      { $addFields: { __score: { $meta: 'vectorSearchScore' } } },
+    ])
+    const found = await cursor.toArray()
+    return found
+      .filter((d) => d.__score >= minScore)
+      .map((d) => ({ doc: d as KnowledgeDoc, score: d.__score }))
+  }
+
+  // Fixture fallback: some fixtures may seed a `documents` array (optional).
+  const fixture = getFixture(projectId) as { documents?: KnowledgeDoc[] } | undefined
+  const seeded = fixture?.documents ?? []
+  if (seeded.length === 0) return []
+  const q = localEmbed(queryText)
+  return seeded
+    .filter((d) => d.projectId === projectId && (!options.sources?.length || options.sources.includes(d.source)))
+    .map((d) => ({ doc: d, score: cosineSimilarity(q, d.embedding ?? localEmbed(`${d.title} ${d.text}`)) }))
+    .sort((x, y) => y.score - x.score)
+    .slice(0, limit)
 }

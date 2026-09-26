@@ -5,12 +5,12 @@ import { usePathname } from 'next/navigation'
 
 export const NAV_ITEMS = [
   { href: '/', label: 'Timeline' },
-  { href: '/capture', label: 'Capture' },
+  { href: '/knowledge', label: 'Knowledge' },
   { href: '/ask', label: 'Ask' },
-  { href: '/sources', label: 'Sources' },
-  { href: '/check', label: 'Check' },
+  { href: '/check', label: 'Check an idea' },
   { href: '/graph', label: 'Graph' },
-  { href: '/lab', label: 'Lab' },
+  { href: '/capture', label: 'Capture' },
+  { href: '/lab', label: 'Harness Lab' },
   { href: '/impact', label: 'Impact' },
 ] as const
 

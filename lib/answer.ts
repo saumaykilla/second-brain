@@ -11,21 +11,45 @@
 import { collection, isDbConfigured } from './db'
 import { readEnv } from './env'
 import { getActiveHarness } from './contracts/get-active-harness'
-import { retrieveAttempts, retrieveDecisions } from './retrieval'
+import { retrieveAttempts, retrieveDecisions, retrieveDocuments } from './retrieval'
 import { getFixture } from './fixtures'
-import { searchSources, type SourceHit } from './sources/search'
-import type { Attempt, Decision } from './types'
+import type { Attempt, Decision, HarnessConfig, KnowledgeDoc } from './types'
+
+// Used only when no active harness exists (no DB and no fixture harness) so
+// retrieval/compose still have valid settings instead of crashing.
+const FALLBACK_HARNESS: HarnessConfig = {
+  _id: 'fallback',
+  projectId: 'fallback',
+  version: 0,
+  active: false,
+  prompts: {
+    classify: '',
+    extract: '',
+    judge: '',
+    answer: 'Answer only from the cited records. Never present a superseded decision as current.',
+    conditions: '',
+  },
+  retrieval: { k: 8, minScore: 0.72, hybridWeight: 0.3 },
+  mergeWindowDays: 7,
+  routing: {
+    classify: 'openai/gpt-4o-mini',
+    extract: 'openai/gpt-4o-mini',
+    judge: 'openai/gpt-4o',
+    reflect: 'openai/gpt-4o',
+    embed: 'text-embedding-3-small',
+  },
+  createdAt: new Date(0).toISOString(),
+}
 
 export interface Citation {
-  kind: 'attempt' | 'decision' | 'doc'
+  kind: 'attempt' | 'decision' | 'document'
   id: string
   title: string
   status: string
   supersededBy?: string
-  /** Connected source citations open the page or file. */
+  /** For document citations: the source system and a link. */
+  source?: string
   url?: string
-  provider?: 'github' | 'notion'
-  excerpt?: string
 }
 
 export interface AnswerResult {
@@ -78,11 +102,11 @@ export function excerptOf(text: string, question: string): string {
 }
 
 export async function answerQuestion(projectId: string, question: string): Promise<AnswerResult> {
-  let harness
+  let harness: HarnessConfig
   try {
     harness = await getActiveHarness(projectId)
   } catch {
-    harness = undefined
+    harness = FALLBACK_HARNESS
   }
   // Decisions for the supersededBy chain: the database when configured, the
   // fixture only offline.
@@ -93,19 +117,20 @@ export async function answerQuestion(projectId: string, question: string): Promi
       )
     : (getFixture(projectId)?.decisions ?? [])
 
-  const [decisionHits, attemptHits, sourceHits] = await Promise.all([
-    harness ? safe(retrieveDecisions(projectId, question, harness), []) : Promise.resolve([]),
-    harness ? safe(retrieveAttempts(projectId, question, harness), []) : Promise.resolve([]),
-    safe(searchSources(projectId, question, SOURCE_HITS), [] as SourceHit[]),
+  const [decisionHits, attemptHits, docHits] = await Promise.all([
+    retrieveDecisions(projectId, question, harness),
+    retrieveAttempts(projectId, question, harness),
+    retrieveDocuments(projectId, question, harness, { limit: 4 }),
   ])
 
   const topDecisions = decisionHits.slice(0, 3).map((h) => h.doc)
   const topAttempts = attemptHits.slice(0, 2).map((h) => h.doc)
+  const topDocs = docHits.slice(0, 4).map((h) => h.doc)
 
-  if (topDecisions.length === 0 && topAttempts.length === 0 && sourceHits.length === 0) {
+  if (topDecisions.length === 0 && topAttempts.length === 0 && topDocs.length === 0) {
     return {
       projectId,
-      answer: 'I could not find a decision, attempt, or connected page in this project that answers that.',
+      answer: 'I could not find a decision, attempt, or document in this project that answers that.',
       citations: [],
       unsupported: true,
     }
@@ -125,39 +150,20 @@ export async function answerQuestion(projectId: string, question: string): Promi
   for (const a of topAttempts) {
     citations.push({ kind: 'attempt', id: a._id, title: a.approach, status: a.status })
   }
-  const seenDocs = new Set<string>()
-  for (const hit of sourceHits) {
-    const key = `${hit.provider}:${hit.sourceId}:${hit.docId}`
-    if (seenDocs.has(key)) continue
-    seenDocs.add(key)
-    citations.push({
-      kind: 'doc',
-      id: hit.id,
-      title: hit.title,
-      status: hit.provider,
-      url: hit.url,
-      provider: hit.provider,
-      excerpt: excerptOf(hit.text, question),
-    })
+  for (const doc of topDocs) {
+    citations.push({ kind: 'document', id: doc._id, title: doc.title, status: doc.kind, source: doc.source, url: doc.url })
   }
 
   const currentDecisions = topDecisions.map((d) => resolveCurrent(allDecisions, d))
   const key = readEnv().OPENROUTER_API_KEY
-  let answer: string
-  if (key && harness) {
-    try {
-      answer = await composeWithModel(question, currentDecisions, topAttempts, sourceHits, harness, key)
-    } catch {
-      answer = composeLocally(question, currentDecisions, topAttempts, sourceHits)
-    }
-  } else {
-    answer = composeLocally(question, currentDecisions, topAttempts, sourceHits)
-  }
+  const answer = key
+    ? await composeWithModel(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, topDocs, harness, key)
+    : composeLocally(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, topDocs)
 
   return { projectId, answer, citations, unsupported: false }
 }
 
-function composeLocally(question: string, decisions: Decision[], attempts: Attempt[], sources: SourceHit[]): string {
+function composeLocally(_question: string, decisions: Decision[], attempts: Attempt[], docs: KnowledgeDoc[]): string {
   const parts: string[] = []
   const current = decisions.find((d) => d.status === 'active') ?? decisions[0]
   if (current) {
@@ -170,8 +176,10 @@ function composeLocally(question: string, decisions: Decision[], attempts: Attem
         `${a.alternative ? `, and chose ${a.alternative} instead` : ''}.`,
     )
   }
-  for (const hit of sources.slice(0, 2)) {
-    parts.push(`From ${hit.title}: ${excerptOf(hit.text, question)}`)
+  if (docs.length) {
+    parts.push(
+      `Related knowledge: ${docs.map((d) => `${d.title} (${d.source})`).slice(0, 3).join('; ')}.`,
+    )
   }
   return parts.join(' ')
 }
@@ -180,7 +188,7 @@ async function composeWithModel(
   question: string,
   decisions: Decision[],
   attempts: Attempt[],
-  sources: SourceHit[],
+  docs: KnowledgeDoc[],
   harness: { routing: { answer?: string; judge: string }; prompts: { answer: string } },
   key: string,
 ): Promise<string> {
@@ -197,10 +205,9 @@ async function composeWithModel(
             question,
             decisions: decisions.map((d) => ({ id: d._id, title: d.title, rationale: d.rationale, status: d.status })),
             attempts: attempts.map((a) => ({ id: a._id, approach: a.approach, outcome: a.outcome, alternative: a.alternative })),
-            sources: sources.map((s) => ({ id: s.id, title: s.title, provider: s.provider, url: s.url, text: s.text })),
+            documents: docs.map((d) => ({ id: d._id, title: d.title, source: d.source, text: d.text.slice(0, 800) })),
             instructions:
-              'Answer concisely using only the decisions, attempts, and sources given. Cite the ids or titles you used. ' +
-              'Never present a superseded decision as current. If the material does not answer the question, say so.',
+              'Answer concisely and cite decision/attempt/document ids. Use the documents for supporting context. Never present a superseded decision as current.',
           }),
         },
       ],

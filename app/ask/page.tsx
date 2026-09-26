@@ -4,14 +4,13 @@ import { useState } from 'react'
 import { PageHeader, RecordCard, StatusMark, EmptyState, ErrorState, LoadingState } from '@/components/states'
 
 interface Citation {
-  kind: 'attempt' | 'decision' | 'doc'
+  kind: 'attempt' | 'decision' | 'document'
   id: string
   title: string
   status: string
   supersededBy?: string
+  source?: string
   url?: string
-  provider?: 'github' | 'notion'
-  excerpt?: string
 }
 
 interface AskResponse {
@@ -50,6 +49,7 @@ export default function AskPage() {
   }
 
   function markFor(c: Citation) {
+    if (c.kind === 'document') return 'current'
     if (c.kind === 'decision') return c.status === 'superseded' ? 'superseded' : 'current'
     return c.status === 'revisitable' ? 'revisitable' : 'dead-end'
   }
@@ -58,7 +58,7 @@ export default function AskPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Ask the brain"
-        description="Ask about the project. Answers come from recorded decisions and attempts and from the Notion pages and GitHub repositories connected on Sources. Every answer cites where it came from and never presents a superseded decision as current."
+        description="Ask anything about the project. Answers are grounded in the team's memory — decisions, attempts, and ingested Notion/Slack/GitHub knowledge — and cite their sources, never presenting a superseded decision as current."
       />
 
       <form onSubmit={onAsk} className="flex flex-col gap-3">
@@ -115,33 +115,25 @@ export default function AskPage() {
             {result.citations.map((c) => (
               <li key={`${c.kind}-${c.id}`}>
                 <RecordCard>
-                  {c.kind === 'doc' ? (
-                    <>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {c.provider === 'github' ? 'GitHub' : 'Notion'}
-                        </span>
-                        {c.url ? (
-                          <a href={c.url} target="_blank" rel="noreferrer" className="text-sm underline underline-offset-4">
-                            Open
-                          </a>
-                        ) : null}
-                      </div>
-                      <p className="font-medium">{c.title}</p>
-                      {c.excerpt ? <blockquote className="border-l-2 border-border pl-3 text-sm text-muted-foreground">{c.excerpt}</blockquote> : null}
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-center justify-between gap-2">
-                        <StatusMark mark={markFor(c) as never} />
-                        <code className="font-mono text-xs text-muted-foreground">{c.id}</code>
-                      </div>
-                      <p className="font-medium">{c.title}</p>
-                      {c.status === 'superseded' && c.supersededBy ? (
-                        <p className="text-sm text-muted-foreground">Superseded by {c.supersededBy}. Not the current decision.</p>
-                      ) : null}
-                    </>
-                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <StatusMark mark={markFor(c) as never} />
+                    <code className="font-mono text-xs text-muted-foreground">{c.id}</code>
+                  </div>
+                  <p className="font-medium">
+                    {c.kind === 'document' && c.url ? (
+                      <a href={c.url} className="underline underline-offset-2" target="_blank" rel="noreferrer">
+                        {c.title}
+                      </a>
+                    ) : (
+                      c.title
+                    )}
+                  </p>
+                  {c.kind === 'document' && c.source ? (
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">{c.source} · {c.status}</p>
+                  ) : null}
+                  {c.status === 'superseded' && c.supersededBy ? (
+                    <p className="text-sm text-muted-foreground">Superseded by {c.supersededBy}. Not the current decision.</p>
+                  ) : null}
                 </RecordCard>
               </li>
             ))}

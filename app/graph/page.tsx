@@ -60,7 +60,7 @@ export default function GraphPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Memory graph"
-        description="Your project's decisions, attempts, and entities connected by caused-by, superseded-by, alternative-to, blocked-by, and unblocks edges."
+        description="A map of how the project's knowledge connects. Nodes are decisions, attempts, and entities (technologies, services); edges show what caused, superseded, blocked, or unblocked what. Click any node to open its record — e.g. see how the App Runner decision unblocks the WebSockets dead end."
       />
 
       {status === 'loading' ? <LoadingState label="Building graph\u2026" /> : null}
