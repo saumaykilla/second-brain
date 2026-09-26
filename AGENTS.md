@@ -11,6 +11,8 @@ You are operating within a Harness Engineering environment for the **Second Brai
 
 Do not introduce a second database, a worker-local store as the source of truth, or a different cloud provider unless a feature spec explicitly requires it.
 
+The product contract is ProjectBrain in `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Earlier product plans are not requirements. OpenAI and OpenRouter are model providers called by the API. MongoDB remains the system of record, and AWS remains the host.
+
 ## Operating Rules
 
 ### 1. Startup Workflow

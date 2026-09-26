@@ -1,61 +1,53 @@
-# f-ui-02 — LiveKit Meeting Room
+# f-ui-02 — Ask the Brain and Check an Idea
 
 ## Goal
 
-Deliver a dependable native meeting room for authenticated company participants using LiveKit.
+Let a person ask the project memory a question, or paste a plan and see whether it repeats a dead end.
 
 ## User-visible behavior
 
-Invited members join a Second Brain AI meeting with audio, video, screen sharing, participant controls, and a persistent meeting thread.
+A person can ask a project question and see cited attempt and decision cards, or paste a plan and see similar dead ends with match confidence.
 
 ## Scope / out of scope
 
 In scope:
 
-- Secure room joining for invited members.
-- Microphone, camera, speaker, and screen-sharing controls.
-- Responsive participant and screen-share layouts.
-- Participant list, speaking, muted, disconnected, and reconnecting states.
-- Persistent meeting thread linked to the meeting.
-- Visible CC presence when the assistant is enabled.
-- Leave and organizer-end controls.
+- Ask the Brain conversation for one project, with citation cards.
+- Check an Idea, including a pasted plan or pull-request description.
+- Match confidence, blocker, evidence, alternative, and hours on a hit.
+- An explicit no-match state.
+- Loading, empty, and failure states.
+- Feedback controls that call the feedback API.
 
 Out of scope:
 
-- External guests, dial-in, webinars, or public streaming.
-- Permanent raw audio/video recording.
-- AI retrieval behavior and post-meeting processing.
-- Background effects or advanced production controls.
+- Slack delivery. Check an Idea is the live fallback when Slack is unavailable.
+- Harness version editing.
+- Automatic retries of a rejected approach.
 
 ## Acceptance criteria
 
-- Only an authenticated invited member receives access to the LiveKit room.
-- Participants can publish and receive permitted audio, video, screen share, and reliable thread messages.
-- The UI handles camera-off, muted, screen-sharing, reconnecting, and participant-leave states.
-- The active screen share receives visual priority without making meeting controls inaccessible.
-- Meeting-thread messages persist and remain available after the room ends.
-- CC is clearly distinguishable from human participants.
-- Leaving a room does not end it for everyone; an authorized organizer can end the meeting.
-- The room remains usable at supported desktop and mobile widths.
+- The Postgres search question cites the benchmark and the superseding search decision.
+- A superseded decision is not presented as current inside an answer.
+- The socket.io plan matches the WebSockets dead end and shows confidence and 14 hours.
+- A non-matching plan shows that no dead end matched.
+- Feedback on an answer or warning is submitted from the screen.
 
 ## Verification steps
 
-1. Run frontend and token-authorization tests.
-2. Join the same test meeting with at least two authenticated participants.
-3. Exercise microphone, camera, screen sharing, thread messaging, reconnect, leave, and end controls.
-4. Attempt joining as an uninvited member and from another company.
-5. Verify thread persistence after leaving and re-entering.
-6. Exercise the room at desktop and mobile viewport widths in a browser.
+1. Ask the seeded Postgres question in the browser and open a citation.
+2. Paste the socket.io plan into Check an Idea and verify the WebSockets dead end, confidence, and hours.
+3. Paste a non-matching plan and verify an explicit no-match state.
+4. Verify loading and failure states.
+5. Exercise both screens in the browser.
 
 ## Dependencies
 
-- `f-aws-01` Platform Foundation and Environments.
-- `f-be-01` Company Identity and Membership.
-- `f-ui-01` App Shell and Company Administration.
-- `f-be-03` Meeting Scheduling and Lifecycle.
+- `f-ui-01` Timeline and Dead-End Detail, for the shared shell and visual direction.
+- `f-be-02` Dead-End Check.
+- `f-be-04` Cited Answers.
 
 ## Open questions
 
-- Which LiveKit regions and quality presets should be used initially?
-- Should meeting-thread messages also be delivered over LiveKit data channels for lower perceived latency?
-- Which organizer controls beyond ending the meeting are required?
+- Should Check an Idea and Ask share one composer with a mode switch, or stay separate routes?
+- How many citation cards should an answer show before the rest are collapsed?

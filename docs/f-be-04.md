@@ -1,59 +1,52 @@
-# f-be-04 — AI Meeting Memory and Citations
+# f-be-04 — Cited Answers
 
 ## Goal
 
-Give live meetings a trustworthy reactive AI participant that recalls approved Notion knowledge and prior meeting memory with verifiable citations.
+Answer project questions from stored decisions and attempts, with citations, without presenting superseded decisions as current.
 
 ## User-visible behavior
 
-When a participant directly addresses CC, it answers concisely from approved company knowledge, cites the supporting sources, and admits when it cannot verify an answer.
+Asking why the team rejected an approach returns a concise answer that cites the attempt or decision. A superseded decision is not presented as the current one.
 
 ## Scope / out of scope
 
 In scope:
 
-- CC participation in eligible LiveKit meetings.
-- Direct-address detection for voice and meeting-thread requests.
-- Retrieval across approved Notion content and eligible prior meeting records.
-- Company isolation, relevance filtering, source attribution, and cited responses.
-- Spoken responses and matching thread responses when the request originates in text.
-- Transparent no-answer and degraded-service behavior.
+- `POST /api/ask`.
+- Retrieval over approved project attempts and decisions.
+- Answers that cite record ids and titles.
+- Staleness handling so superseded decisions are identified and are not returned as current.
+- An explicit response when stored memory does not support an answer.
+- `POST /api/feedback` for thumbs and corrections on an answer.
 
 Out of scope:
 
-- Unprompted or proactive interjections in the initial phase.
-- General web search or unapproved company sources.
-- Autonomous changes to company data.
-- Model training on customer content.
+- General web search.
+- The chat screen. This feature supplies the API the screen will call.
+- Rewriting harness prompts. Feedback is stored for the later reflection feature.
 
 ## Acceptance criteria
 
-- CC does not answer ordinary conversation when it is not directly addressed.
-- A direct company-context question triggers retrieval before an answer is produced.
-- Retrieved evidence is restricted to the participant's company and currently approved sources.
-- Factual claims derived from company knowledge include links to supporting Notion or meeting sources.
-- Weak, conflicting, or absent evidence produces a qualified or explicit no-answer response.
-- A meeting-thread question receives a thread response as well as any configured spoken response.
-- Failures in retrieval or model services do not terminate the meeting.
-- Relevant request, retrieval, citation, latency, and failure events are observable without logging sensitive source content unnecessarily.
+- A question about Postgres search cites the benchmark and the Atlas Search decision.
+- A question about current authentication cites Better Auth and identifies JWT as superseded.
+- An unsupported question does not invent a dead end.
+- Citations resolve only to records in the asked project.
+- Feedback is stored against the answer.
 
 ## Verification steps
 
-1. Run direct-address, retrieval filtering, grounding, citation, and no-answer unit tests.
-2. Run integration tests with controlled Notion and prior-meeting fixtures for two companies.
-3. Ask supported, unsupported, ambiguous, and cross-company questions in a LiveKit test meeting.
-4. Verify CC remains silent during unaddressed conversation.
-5. Verify text-originated requests receive persistent thread responses.
-6. Simulate retrieval and model-provider failures and verify safe degradation.
+1. Ask the Postgres search question against seeded Orbit data and verify the benchmark citation and the Atlas Search alternative.
+2. Ask what authentication the team uses and verify Better Auth is current and JWT is marked superseded.
+3. Verify an unsupported question does not invent a dead end.
+4. Verify citations resolve to attempt and decision ids in the same project.
+5. Post feedback on an answer and read it back.
 
 ## Dependencies
 
-- `f-be-02` Notion Knowledge Connection and Sync.
-- `f-be-03` Meeting Scheduling and Lifecycle.
-- `f-ui-02` LiveKit Meeting Room.
+- `f-be-01` Capture and Extraction Pipeline.
+- `f-db-02` Orbit Seed and Eval Set.
 
 ## Open questions
 
-- Which speech, language, and embedding models meet quality, latency, and cost targets?
-- What confidence policy determines whether CC answers, qualifies, or declines?
-- How should citations be presented in spoken responses while remaining useful in the thread?
+- Should ask use the same judge model as dead-end matching, or a separate answer model setting?
+- How should conflicting evidence be shown when two attempts disagree?

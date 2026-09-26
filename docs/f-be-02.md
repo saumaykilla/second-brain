@@ -1,58 +1,51 @@
-# f-be-02 — Notion Knowledge Connection and Sync
+# f-be-02 — Dead-End Check
 
 ## Goal
 
-Turn administrator-approved Notion pages and databases into current, traceable company knowledge for retrieval.
+Decide whether a new intent repeats a failed or abandoned approach, and return the proof only when the judge agrees.
 
 ## User-visible behavior
 
-An administrator connects Notion, chooses approved sources, sees synchronization status, and can remove access; members can later receive answers linked to the approved originals.
+Pasting a plan that repeats a failed approach returns the matching dead end, the blocker, the evidence, the alternative, the hours previously spent, and a confidence score. A genuinely different idea does not warn.
 
 ## Scope / out of scope
 
 In scope:
 
-- Notion OAuth connection and disconnection.
-- Administrator source discovery and explicit page/database selection.
-- Initial import and incremental synchronization.
-- Update, deletion, deselection, and revoked-access handling.
-- Source provenance, sync status, retries, and administrator-visible failures.
-- Company-wide availability of approved content.
+- `POST /api/check` for a pasted plan or pull-request description.
+- Vector search over attempts filtered by project and by failed or abandoned outcome.
+- Graph lookup of related edges, limited in depth.
+- A strong-model judge returning match, confidence, reason, and whether the blocker still applies.
+- Confidence cutoff from the active harness `minScore`.
+- Hybrid text-and-vector retrieval using the harness hybrid weight.
 
 Out of scope:
 
-- Workspace-wide access beyond content shared with and selected for the integration.
-- Mirroring per-user Notion permissions.
-- Editing Notion content from Second Brain AI.
-- Knowledge connectors other than Notion.
+- Posting the warning into Slack.
+- Changing attempt status to revisitable.
+- The GitHub Action that calls this route. The route must exist; the Action is deferred.
 
 ## Acceptance criteria
 
-- Only a company administrator can connect, configure, or disconnect Notion.
-- Content is imported only after an administrator selects it.
-- Imported content retains its company, source type, Notion identifier, title, URL, and last observed revision time.
-- Edits become retrievable after synchronization without creating contradictory active copies.
-- Deleted, deselected, or inaccessible content stops appearing in retrieval.
-- Transient failures retry safely without duplicating source records.
-- Administrators can see connection state, last successful sync, per-source status, and actionable errors.
-- One company can never retrieve another company's synchronized content.
+- A plan that restates a stored failed approach returns that attempt, its blockers, evidence, alternative, hours, and confidence.
+- A plan that only shares vocabulary with a dead end, or that matches a stored condition for a different approach, does not warn.
+- The judge can reject a high vector score when the conditions are not the same.
+- Results never include attempts from another project.
+- The response cites stored records rather than an unsourced summary.
 
 ## Verification steps
 
-1. Run unit tests for source selection, normalization, idempotency, and deletion handling.
-2. Run integration tests against a controlled Notion test workspace.
-3. Import a page and database, edit them, remove one, and verify each resulting knowledge state.
-4. Simulate throttling and temporary Notion failures and verify bounded retries.
-5. Verify company isolation with two connected test companies.
-6. Complete connection, selection, status, and disconnection flows in a browser.
+1. Run the retrieval and judge unit tests, including tricky non-matches.
+2. `POST /api/check` with a WebSockets-on-serverless idea and verify a match above the cutoff, with blockers and hours spent.
+3. `POST /api/check` with an unrelated idea and verify no warning.
+4. Verify the judge can reject a high vector score when conditions differ.
+5. Verify results never include another project's attempts.
 
 ## Dependencies
 
-- `f-aws-01` Platform Foundation and Environments.
-- `f-be-01` Company Identity and Membership.
+- `f-be-01` Capture and Extraction Pipeline.
 
 ## Open questions
 
-- Which Notion block types require special rendering or normalization?
-- What synchronization freshness target should administrators expect?
-- Which AWS search or vector capability will hold derived retrieval indexes while MongoDB remains authoritative?
+- What confidence value should the first harness version use before evals tune it?
+- Should a partially worked attempt be searchable as a dead end, or only failed and abandoned?

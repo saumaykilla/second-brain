@@ -1,57 +1,53 @@
-# f-ui-01 — App Shell and Company Administration
+# f-ui-01 — Timeline and Dead-End Detail
 
 ## Goal
 
-Provide the authenticated navigation, dashboard, responsive shell, and administration surfaces needed to operate a company workspace.
+Show a project's decisions and attempts across time, and let a person open a dead end and see the proof.
 
 ## User-visible behavior
 
-Members land in a responsive company workspace with clear navigation; administrators can manage people, Notion sources, and company settings from dedicated screens.
+The Orbit timeline shows decisions and attempts over six weeks. Failed attempts are red, revisitable ones are amber, and opening a dead end shows the goal, approach, blockers, evidence, conditions, hours, and what the team did instead.
 
 ## Scope / out of scope
 
 In scope:
 
-- Authenticated responsive application shell and navigation.
-- Home dashboard with relevant meetings, records, knowledge status, and activity.
-- People and role administration.
-- Notion connection and source-management screens.
-- Company and member profile settings.
-- Loading, empty, error, and permission-denied states.
+- A calm lab-notebook visual direction used by every ProjectBrain screen.
+- Timeline of decisions and attempts for one project.
+- Distinct presentation for active dead ends and revisitable attempts.
+- Dead-end detail for goal, approach, typed blockers, evidence, conditions, hours spent, authors, and the linked alternative.
+- Empty, loading, and failure states.
+- `GET /api/attempts` and `GET /api/attempts/:id` if they do not already exist.
 
 Out of scope:
 
-- Implementing authentication, sync, meetings, or AI business logic in the browser.
-- Channels, direct messages, or decision-management screens before their features begin.
-- Theme marketplaces or extensive visual customization.
+- Ask the Brain, Check an Idea, Harness Lab, Impact, and the graph.
+- Editing harness settings.
+- Slack composition.
 
 ## Acceptance criteria
 
-- Authenticated members see only navigation and actions allowed by their role.
-- The shell works at supported desktop and mobile widths without hidden or overlapping controls.
-- The dashboard uses real company data and presents useful empty states before meetings or knowledge exist.
-- Administrators can complete people and Notion configuration flows from the UI.
-- Non-administrators cannot access administration screens through navigation or direct URLs.
-- Failure and reconnect states explain what happened without exposing secrets or raw backend errors.
-- Keyboard navigation and accessible names cover primary controls and forms.
+- Seeded Orbit history appears in time order, including four dead ends and the authentication decision chain.
+- The WebSockets detail shows the serverless blocker, evidence, 14 hours, the conditions, and the SSE alternative.
+- After the attempt is revisitable, the timeline shows it as amber rather than an active failure.
+- A superseded decision is visibly not current.
+- The layout remains readable at a desktop width.
 
 ## Verification steps
 
-1. Run frontend lint, type-check, component, and route tests.
-2. Verify member and administrator navigation with separate test accounts.
-3. Exercise loading, empty, populated, permission-denied, and API-failure states.
-4. Test primary screens at desktop and mobile viewport widths in a browser.
-5. Complete people, Notion source, company, and profile flows in the browser.
-6. Run the configured accessibility checks for primary routes.
+1. Run frontend lint, type-check, and route tests.
+2. Load the seeded Orbit project and verify four dead ends and the superseded authentication decisions appear in order.
+3. Open the WebSockets dead end and verify evidence, 14 hours, conditions, and the SSE alternative.
+4. After the condition re-check, verify that node is amber.
+5. Exercise the timeline and detail flow in a browser.
 
 ## Dependencies
 
-- `f-aws-01` Platform Foundation and Environments.
-- `f-be-01` Company Identity and Membership.
-- `f-be-02` Notion Knowledge Connection and Sync for live Notion administration.
+- `f-be-01` Capture and Extraction Pipeline.
+- `f-db-02` Orbit Seed and Eval Set.
+- `f-be-05` Revisitable Conditions, for the amber state.
 
 ## Open questions
 
-- Which dashboard cards are essential before meeting features exist?
-- Which mobile navigation pattern best fits later channels and direct messages?
-- Should company branding extend beyond company name and avatar in the first release?
+- Should the timeline be a vertical notebook or a horizontal week axis?
+- How should partially worked attempts be distinguished from failed and abandoned?

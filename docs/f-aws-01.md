@@ -2,37 +2,35 @@
 
 ## Goal
 
-Establish the deployable foundation for the Next.js frontend, Node.js API, MongoDB system of record, and AWS environments that every later feature depends on.
+Establish the Next.js application, Node.js API, MongoDB connection, and AWS-oriented environment layout that every later ProjectBrain feature runs on.
 
 ## User-visible behavior
 
-Users can open the application, receive a healthy response from the API, and see a clear service-unavailable state when a required dependency is unhealthy.
+A developer can open ProjectBrain locally, see a healthy API response, and see a clear unavailable state when MongoDB or a required provider configuration is missing.
 
 ## Scope / out of scope
 
 In scope:
 
-- Next.js and Node.js project foundations with local development commands.
-- MongoDB connectivity and environment-specific configuration.
-- AWS development and production environment definitions.
-- Health checks, structured logs, secret injection, and baseline monitoring.
-- Continuous checks for build, lint, type safety, and tests.
+- Next.js app and Node.js API foundations with documented local commands.
+- Environment configuration for MongoDB, OpenAI, OpenRouter, Slack, and AWS.
+- Health checks that distinguish process health from dependency readiness.
+- Safe failure when a required configuration value is missing.
+- Secrets kept out of git and out of browser code.
 
 Out of scope:
 
-- Company accounts, Notion synchronization, meetings, and AI behavior.
-- Production-scale tuning before representative usage exists.
-- Any database or cloud platform that replaces MongoDB or AWS.
+- Memory collections, extraction, Slack delivery, and product screens.
+- Production deployment and the nightly reflection schedule.
+- Choosing Vercel as the host.
 
 ## Acceptance criteria
 
 - Frontend and API start locally from documented commands.
-- The API health response distinguishes process health from dependency readiness.
-- Application configuration fails safely when required values are missing.
-- Development and production resources are isolated.
-- Secrets are not committed or exposed to browser code.
-- Build, lint, type-check, and test commands run in continuous integration.
-- Logs carry enough request and service context to investigate failures without containing credentials.
+- The health response distinguishes process health from MongoDB readiness.
+- Missing required configuration fails readiness without exposing secret values.
+- Model-provider keys are read only by server-side code.
+- Build, lint, type-check, and test commands are documented and runnable.
 
 ## Verification steps
 
@@ -40,15 +38,14 @@ Out of scope:
 2. Install dependencies using the repository-documented command.
 3. Run the frontend and API build, lint, type-check, and test commands.
 4. Start the local stack and verify the frontend and API health endpoints.
-5. Temporarily withhold a required dependency configuration and verify a safe readiness failure.
-6. Validate the AWS infrastructure definition without deploying production resources.
+5. Withhold a required configuration value and verify a safe readiness failure.
+6. Confirm secrets are not committed and model-provider keys are not exposed to browser code.
 
 ## Dependencies
 
-- None. This is the first implementation feature.
+None.
 
 ## Open questions
 
-- Which AWS region and account structure will host development and production?
-- Will MongoDB run through MongoDB Atlas on AWS or an AWS-managed compatible service that preserves MongoDB as the system of record?
-- Which infrastructure-as-code tool will be selected during implementation planning?
+- Which AWS region should development and production use?
+- Should the first local API live in Next.js route handlers, with a separate Node worker process added later?

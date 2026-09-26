@@ -1,59 +1,54 @@
-# f-ui-03 — Company Knowledge Assistant
+# f-ui-03 — Harness Lab and Impact
 
 ## Goal
 
-Give members an outside-meeting assistant for cited questions across approved Notion knowledge and prior meeting records.
+Show whether the harness is improving, what changed, and how much time the warnings saved.
 
 ## User-visible behavior
 
-Members ask company questions in a dedicated assistant, receive concise cited answers, inspect the supporting sources, and continue a conversation without losing context.
+Harness Lab shows version history, score changes, and the diff of what reflection changed. Impact shows warnings sent, hours saved from accepted warnings, and the precision trend.
 
 ## Scope / out of scope
 
 In scope:
 
-- Dedicated company assistant interface.
-- Conversational questions over the same approved corpus used by meeting memory.
-- Answers with Notion and meeting-record citations.
-- Source previews, links, conversation history, and clear no-answer states.
-- Company isolation and member authorization.
+- Version timeline with eval scores.
+- A diff between a version and its parent, including rejected candidates and their reasons.
+- A Run reflection control that calls the reflection API and then shows the result.
+- Impact totals for warnings sent and hours saved.
+- Hours saved as the sum of `hoursSpent` on attempts tied to warnings marked helpful.
+- Precision trend from stored eval runs.
+- The same lab-notebook visual direction as the rest of the app.
 
 Out of scope:
 
-- Public or anonymous access.
-- General-purpose web search.
-- Editing source documents through the assistant.
-- Taking consequential actions without explicit product features and authorization.
+- Editing prompts by hand in the browser.
+- The nightly schedule.
+- Invented impact numbers that are not computed from stored warnings and attempts.
 
 ## Acceptance criteria
 
-- Active members can start, continue, revisit, and delete their assistant conversations.
-- Answers use only approved company knowledge and eligible prior meeting records.
-- Each material factual answer provides inspectable source citations.
-- Notion and meeting sources are visually distinguishable.
-- Unsupported or conflicting evidence is communicated rather than concealed.
-- Removing a source prevents it from supporting future answers.
-- A member cannot access another company's conversations or knowledge.
-- The interface supports loading, streaming, completion, cancellation, empty, and failure states accessibly.
+- At least two harness versions can be compared, with scores and a readable diff.
+- Running reflection from the screen updates the timeline only when the candidate is promoted.
+- A rejected run remains visible with the reason, and the previous active version stays marked active.
+- Impact hours equal the sum of hours spent for accepted warnings.
+- A not-relevant response is visible as feedback that reflection can use.
 
 ## Verification steps
 
-1. Run assistant conversation, authorization, retrieval, citation, and source-removal tests.
-2. Ask controlled questions answerable by Notion, prior meetings, both source types, and neither.
-3. Verify multi-turn context without allowing earlier conversation text to bypass source restrictions.
-4. Remove an approved source and verify it no longer supports new answers.
-5. Attempt cross-company conversation and source access.
-6. Exercise desktop and mobile assistant flows in a browser.
+1. Open Harness Lab and verify at least two versions with scores and a diff.
+2. Run reflection from the button and verify the timeline updates only after promotion.
+3. Open Impact and verify hours saved equals the sum of hours spent for accepted warnings.
+4. Record a not-relevant feedback action and verify it is visible to the reflection inputs.
+5. Exercise both screens in a browser.
 
 ## Dependencies
 
-- `f-be-01` Company Identity and Membership.
-- `f-be-02` Notion Knowledge Connection and Sync.
-- `f-be-04` AI Meeting Memory and Citations.
-- `f-be-05` Structured Meeting Records.
+- `f-ui-01` Timeline and Dead-End Detail.
+- `f-be-03` Slack Capture and Proactive Warnings.
+- `f-be-06` Self-Improving Harness.
 
 ## Open questions
 
-- How long should assistant conversation history be retained?
-- Should administrators be able to audit assistant usage without reading private conversation content?
-- Which answer feedback controls are required for retrieval-quality improvement?
+- Should rejected versions appear on the same timeline as promoted ones?
+- Which warning statuses count as accepted for the hours-saved total?

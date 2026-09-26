@@ -1,60 +1,56 @@
-# f-be-06 — Decision and Action System
+# f-be-06 — Self-Improving Harness
 
 ## Goal
 
-Turn meeting outcomes into a traceable operating system for decisions and action items.
+Change the harness only when a measured eval says the change is better and precision does not get worse.
 
 ## User-visible behavior
 
-Members can see what was decided, who owns each action, its current status and reminders, and the source history connecting it to meetings, knowledge, and collaboration.
+Running reflection proposes one harness change, re-runs the eval set, and keeps the new version only when the score improves without a precision drop. Rejected proposals stay recorded with the reason.
 
 ## Scope / out of scope
 
 In scope:
 
-- First-class decision and action-item records.
-- Owners, collaborators, status, due dates, reminders, and history.
-- Creation from meeting records and supported manual flows.
-- Links to originating meetings, transcript evidence, approved knowledge, and relevant messages.
-- Personal and company views for open, completed, overdue, and changed work.
-- Notification preferences and authorization.
+- `POST /api/harness/reflect` and `POST /api/eval/run`.
+- Loading failed eval cases and negative feedback.
+- A strong-model proposal that changes one setting: an extraction or match prompt, `minScore`, `k`, hybrid weight, or model routing.
+- Candidate harness versions linked to their parent.
+- Promotion only when the candidate score beats the parent and dead-end precision does not drop.
+- Rejection with a stored reason when promotion fails.
+- Metrics for dead-end precision and recall, citation accuracy, staleness rate, and average hours saved per accepted warning.
+- Pipeline reads of prompts and thresholds from the active version.
 
 Out of scope:
 
-- Replacing a full project-management product.
-- Automatically executing external business actions.
-- External assignees who are not company members.
-- Predictive employee-performance scoring.
+- The Harness Lab screen.
+- The nightly EventBridge schedule. This feature runs when invoked.
+- Automatic edits to more than one setting per reflection.
 
 ## Acceptance criteria
 
-- A meeting-record decision or action item can become a first-class record without losing its source evidence.
-- Authorized members can create, assign, update, complete, reopen, and archive supported records.
-- Every state-changing operation records who changed what and when.
-- Reminders follow owner, due state, and notification preferences without producing duplicate notifications.
-- Personal views show a member's owned work; company views respect role and access boundaries.
-- Source links remain valid or show a clear unavailable state when source access changes.
-- Search and collaboration references resolve to the canonical decision or action record.
-- Cross-company or unauthorized mutation is denied.
+- The eval runner scores the 40 Orbit cases and stores an eval run for the active version.
+- A candidate that lowers precision is not promoted, and the reason is stored.
+- A candidate that improves the parent score without lowering precision becomes active.
+- Extraction and dead-end matching use the active version's prompts and thresholds.
+- Reflection considers failed cases and negative feedback, and proposes one change.
 
 ## Verification steps
 
-1. Run decision, action-item, history, reminder, authorization, and idempotency tests.
-2. Promote extracted meeting outcomes into canonical records and verify source traceability.
-3. Exercise assignment, status changes, due dates, completion, reopen, and archive flows.
-4. Advance test time and verify reminder scheduling, deduplication, and preference handling.
-5. Attempt unauthorized and cross-company reads and mutations.
-6. Complete personal and company decision/action workflows in a browser.
+1. Run the eval runner on the 40 cases and record precision, recall, citation accuracy, and staleness.
+2. Force a candidate that lowers precision and verify it is not promoted.
+3. Run a candidate that improves the parent score and verify it becomes the active harness version.
+4. Verify extraction and matching read prompts and thresholds from the active harness config.
+5. Verify feedback and failed cases are inputs to the proposal.
 
 ## Dependencies
 
-- `f-be-01` Company Identity and Membership.
-- `f-be-05` Structured Meeting Records.
-- `f-ui-03` Company Knowledge Assistant.
-- `f-ui-04` Channels and Direct Messages.
+- `f-be-02` Dead-End Check.
+- `f-be-04` Cited Answers.
+- `f-be-05` Revisitable Conditions.
+- `f-db-02` Orbit Seed and Eval Set.
 
 ## Open questions
 
-- Which initial status models should decisions and action items use?
-- Which reminder channels are required beyond in-app notifications?
-- Can administrators reassign work when an owner leaves the company?
+- Which single aggregate score should decide "beats the parent"?
+- Should a tie keep the parent even if precision is unchanged?

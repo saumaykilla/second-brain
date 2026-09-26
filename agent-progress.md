@@ -1,8 +1,10 @@
-# Agent Progress — Second Brain
+# Agent Progress — ProjectBrain
 
 ## Verified state
 
-Harness skeleton and product planning artifacts are in place. No application code has been scaffolded.
+Harness skeleton is in place. No application code has been scaffolded.
+
+The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Fourteen features are registered, and every feature is `not_started`.
 
 Stack this repo is held to:
 
@@ -11,16 +13,14 @@ Stack this repo is held to:
 - Database: MongoDB
 - Cloud: AWS
 
-The requirements-only product contract is at `docs/plans/2026-09-26-001-feat-Second Brain-collaboration-suite-plan.md`.
-Eleven feature specifications are registered in priority order, and every feature is `not_started`.
+OpenAI and OpenRouter are model providers called by the API. They are not a second system of record.
 
 Confirmed product direction:
 
-- Phased Second Brain AI collaboration suite for scaling Notion-based teams.
-- Native LiveKit meetings with approved Notion knowledge and prior meeting memory.
-- Reactive, cited AI responses during meetings and a company-wide knowledge assistant.
-- Structured meeting records without permanent raw audio or video.
-- Channels, direct messages, and the decision/action system follow the meeting-memory foundation.
+- ProjectBrain remembers what a team decided, what failed, and why.
+- Dead-End Memory is the demo: warn with proof, answer with citations, reopen a dead end when conditions change, and promote a harness version only when evals improve.
+- The seeded story is Orbit, a team task app, ingested through the real pipeline.
+- The memory graph and the nightly AWS reflection job are registered after the demo path.
 
 ## Next best action
 
@@ -34,24 +34,29 @@ None.
 
 - The Next.js app, Node.js API, MongoDB connection, and AWS deployment are not scaffolded yet.
 - `./init.sh` checks harness integrity now. App checks start once `package.json` exists.
-- Notion synchronization freshness, retrieval infrastructure, AI provider selection, and AWS account/region choices remain implementation-planning decisions.
-- The broad suite is intentionally phased; starting a later feature before its dependencies would undermine the verified feature order.
+- OpenAI, OpenRouter, MongoDB Atlas, Slack, and AWS accounts are not configured in this repository.
+- The retired collaboration-suite plan and its screen images are no longer requirements. Do not restore them as product scope.
+- Graph view, pull-request comments, voice transcription, and nightly reflection are later than the demo path. Starting them first would skip the warning, the citation, and the measured harness change.
 
 ## Session log
 
-### 2026-09-26 — Product UI reference screens
+### 2026-09-26 — ProjectBrain screen designs
 
-- Generated 31 desktop screen images for Second Brain, from Google sign-in through meetings, records, the company assistant, channels, direct messages, and decisions.
-- Stored them in `design/` with a route index at `design/screens.md`.
+- Added nine desktop references in `design/` for the lab-notebook UI: timeline, dead-end detail, ask, check, graph, harness lab, impact, and the Slack warning.
+- Indexed them in `design/screens.md`.
 - No feature was marked `in_progress`. No application code was written.
 
-### 2026-09-26 — Product requirements and feature plan
+### 2026-09-26 — ProjectBrain replaces the previous product plan
 
-- Studied the original `saumaykilla/Second Brain-ai` repository as a product reference.
-- Confirmed the new direction through a product brainstorm: LiveKit-native meetings, admin-approved Notion sources, company-shared knowledge, reactive cited AI, structured records, a global assistant, later collaboration, and decision follow-through.
-- Added the requirements-only unified product contract.
-- Added and registered eleven feature specifications with no feature marked `in_progress`.
-- No application code or infrastructure was implemented.
+- Retired the collaboration-suite contract, its eleven feature specs, and the generated screen images.
+- Added the ProjectBrain Dead-End Memory contract.
+- Registered fourteen features, from platform foundation through nightly reflection. None is `in_progress`.
+- No application code was implemented.
+
+### 2026-09-26 — Product UI reference screens
+
+- Generated desktop screen images for the retired product direction.
+- Those images were removed when the product contract changed.
 
 ### 2026-09-26 — Harness skeleton
 

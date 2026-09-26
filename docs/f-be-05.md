@@ -1,60 +1,52 @@
-# f-be-05 — Structured Meeting Records
+# f-be-05 — Revisitable Conditions
 
 ## Goal
 
-Convert completed meetings into durable, cited company memory without retaining raw meeting audio or video.
+Notice when a new decision removes the blocker that made an earlier attempt fail.
 
 ## User-visible behavior
 
-After a meeting ends, participants can open its transcript, summary, decisions, action items, and citations; future retrieval can use the approved record.
+When a new decision satisfies a dead end's conditions, ProjectBrain says that dead end may now be possible and marks it revisitable instead of leaving it as an active failure.
 
 ## Scope / out of scope
 
 In scope:
 
-- Timestamped transcript finalization.
-- Summary, key-decision, and action-item extraction.
-- Source links from generated record items to transcript evidence and referenced company knowledge.
-- Processing status, retry, failure, and partial-result handling.
-- Search eligibility for completed meeting records.
-- Raw media deletion after required processing.
+- A pipeline node that runs on new decisions.
+- Semantic comparison between the decision and stored attempt conditions.
+- Status change from `active` to `revisitable` when the judge says the blocker may no longer apply.
+- An `unblocks` edge from the decision to the attempt.
+- A stored explanation of which blocker was affected.
+- The same check can run from a database change stream or an equivalent application trigger.
 
 Out of scope:
 
-- Permanent audio or video recordings.
-- Human transcription editing comparable to a document editor.
-- Decision ownership workflows, reminders, and status management.
-- Export formats beyond what the initial product requires.
+- Automatically retrying the old approach.
+- Nightly batch reflection.
+- Turning the timeline node amber. The UI feature reads the status this feature writes.
 
 ## Acceptance criteria
 
-- Ending a meeting creates one canonical processing job and does not duplicate records when events repeat.
-- The record identifies its meeting, company, participants, and creation time.
-- The transcript preserves speaker attribution and useful ordering.
-- Summaries, decisions, and action items cite supporting transcript ranges or approved knowledge.
-- Participants can distinguish processing, complete, partial, and failed states.
-- Retriable failures can be retried without duplicating the canonical record.
-- Raw audio and video are deleted after processing and are not exposed as permanent records.
-- Only authorized company members can access the record.
-- Eligible completed content becomes retrievable as prior meeting memory.
+- The Orbit decision to move realtime to AWS App Runner marks the WebSockets attempt revisitable.
+- The stored explanation names the serverless runtime blocker.
+- An unrelated decision does not change other dead ends.
+- Repeating the decision event does not create a second status transition.
+- The attempt is not marked resolved. Revisitable means it may be possible, not that it succeeded.
 
 ## Verification steps
 
-1. Run transcript, extraction, citation, idempotency, authorization, and retry tests.
-2. Complete a controlled multi-speaker meeting and compare the produced record with the known transcript.
-3. Repeat the meeting-ended event and verify only one canonical record.
-4. Force partial and failed processing states and verify recovery behavior.
-5. Verify raw media deletion after processing.
-6. Open the finished record in a browser and follow its transcript and knowledge citations.
+1. Capture the App Runner decision through the pipeline.
+2. Verify the WebSockets attempt status becomes revisitable and the explanation names the serverless blocker.
+3. Verify an unrelated decision does not flip other dead ends.
+4. Verify the link between the new decision and the attempt is stored.
+5. Replay the decision event and verify a single transition.
 
 ## Dependencies
 
-- `f-be-03` Meeting Scheduling and Lifecycle.
-- `f-ui-02` LiveKit Meeting Room.
-- `f-be-04` AI Meeting Memory and Citations.
+- `f-be-01` Capture and Extraction Pipeline.
+- `f-db-02` Orbit Seed and Eval Set.
 
 ## Open questions
 
-- What transcript retention controls should administrators receive beyond raw-media deletion?
-- Which action-item fields are required before the advanced decision system exists?
-- What quality threshold permits a record to become searchable automatically?
+- Should a revisitable attempt stay in the dead-end warning index with a lower warning strength?
+- Who can manually move an attempt back to active or forward to resolved?
