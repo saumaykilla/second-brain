@@ -8,6 +8,7 @@ import type {
   Entity,
   Feedback,
   HarnessConfig,
+  KnowledgeDoc,
   Message,
   Project,
   Warning,
@@ -49,6 +50,7 @@ interface CollectionTypes {
   decisions: Decision
   entities: Entity
   edges: Edge
+  documents: KnowledgeDoc
   warnings: Warning
   feedback: Feedback
   harness_configs: HarnessConfig

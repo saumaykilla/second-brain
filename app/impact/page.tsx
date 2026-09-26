@@ -32,7 +32,7 @@ export default function ImpactPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Impact"
-        description="Warnings sent, hours saved from accepted warnings, and how dead-end precision has trended across harness versions."
+        description="The ROI view: how many dead-end warnings Second Brain has sent, how many engineer-hours those accepted warnings saved, and how answer accuracy (precision) has trended as the harness improved."
       />
 
       {status === 'loading' ? <LoadingState label="Loading impact\u2026" /> : null}

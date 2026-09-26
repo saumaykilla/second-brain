@@ -210,6 +210,45 @@ export interface IngestResult {
   transitions: ConditionTransition[]
 }
 
+// Knowledge documents: general project knowledge ingested from external sources
+// (Notion pages, Slack messages, GitHub PRs/issues/commits) or seeded. This is
+// what makes Second Brain more than a dead-end log: it is the searchable memory
+// that Ask and the knowledge search read from, alongside attempts and decisions.
+
+export type DocSource = 'notion' | 'slack' | 'github' | 'web' | 'seed'
+
+export type DocKind =
+  | 'note' // a Notion page / doc / wiki entry
+  | 'message' // a Slack message or thread
+  | 'pull_request'
+  | 'issue'
+  | 'commit'
+  | 'comment'
+
+export interface KnowledgeDoc {
+  _id: string
+  projectId: string
+  source: DocSource
+  kind: DocKind
+  /** Stable id from the source system (Notion page id, Slack ts, PR number, sha). */
+  sourceId: string
+  title: string
+  /** Full text content used for embedding and display. */
+  text: string
+  url?: string
+  author?: string
+  /** Freeform labels: repo name, channel, Notion database, tags. */
+  tags?: string[]
+  /** Related entity ids (technologies, services, people, features). */
+  entityIds?: string[]
+  createdAt: string
+  /** When it was last updated in the source system. */
+  updatedAt?: string
+  /** When Second Brain ingested it. */
+  ingestedAt: string
+  embedding?: number[]
+}
+
 export const COLLECTIONS = [
   'projects',
   'messages',
@@ -217,6 +256,7 @@ export const COLLECTIONS = [
   'decisions',
   'entities',
   'edges',
+  'documents',
   'warnings',
   'feedback',
   'harness_configs',

@@ -61,7 +61,7 @@ export default function LabPage() {
     <div className="flex flex-col gap-8">
       <PageHeader
         title="Harness Lab"
-        description="Every harness version, its eval scores, and what reflection changed. A version is promoted only when the eval score improves without dropping precision."
+        description="The 'harness' is the AI config that powers Second Brain — the prompts, retrieval settings, and model routing. This lab shows each version, its eval score, and what changed. Reflection proposes one change, re-runs the evals, and promotes it only if the score improves without dropping precision — so the brain gets measurably better over time."
       />
 
       <div className="flex items-center gap-3">

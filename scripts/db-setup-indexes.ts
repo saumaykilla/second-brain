@@ -20,6 +20,10 @@ export const STANDARD_INDEXES: Partial<Record<CollectionName, IndexDescription[]
     { key: { projectId: 1 }, name: 'one_active', unique: true, partialFilterExpression: { active: true } },
   ],
   traces: [{ key: { projectId: 1, messageId: 1 }, name: 'message' }],
+  documents: [
+    { key: { projectId: 1, source: 1, sourceId: 1 }, name: 'source_unique', unique: true },
+    { key: { projectId: 1, kind: 1, createdAt: -1 }, name: 'kind_time' },
+  ],
 }
 
 export interface SearchIndexSpec {
@@ -36,10 +40,41 @@ const vector = (filters: string[]) => ({
   ],
 })
 
-// M0 clusters allow three search indexes in total; keep this list at three.
+// Core search indexes. M0 (free) Atlas clusters allow three search indexes in
+// total, so this list stays at three and always works on the free tier.
 export const SEARCH_INDEXES: SearchIndexSpec[] = [
   { collection: 'attempts', name: 'attempts_vector', type: 'vectorSearch', definition: vector(['projectId', 'outcome', 'status']) },
   { collection: 'decisions', name: 'decisions_vector', type: 'vectorSearch', definition: vector(['projectId', 'status']) },
+  {
+    collection: 'documents',
+    name: 'documents_vector',
+    type: 'vectorSearch',
+    definition: vector(['projectId', 'source', 'kind']),
+  },
+]
+
+// Extended search indexes for the general knowledge experience. These push the
+// total beyond the M0 limit of three, so they require a paid tier (M10+). The
+// setup script attempts them and skips gracefully if the cluster rejects them.
+export const EXTENDED_SEARCH_INDEXES: SearchIndexSpec[] = [
+  {
+    collection: 'documents',
+    name: 'documents_text',
+    type: 'search',
+    definition: {
+      mappings: {
+        dynamic: false,
+        fields: {
+          projectId: { type: 'token' },
+          source: { type: 'token' },
+          kind: { type: 'token' },
+          title: { type: 'string' },
+          text: { type: 'string' },
+          tags: { type: 'string' },
+        },
+      },
+    },
+  },
   {
     collection: 'attempts',
     name: 'memory_text',
