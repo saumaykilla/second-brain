@@ -35,6 +35,7 @@ require_file "agent-progress.md"
 require_file "feature_list.json"
 require_file "clean-state-checklist.md"
 require_dir "docs"
+require_file "docs/README.md"
 
 if [[ -f feature_list.json ]]; then
   if python3 - "$ROOT" <<'PY'
@@ -49,10 +50,12 @@ if not isinstance(features, list):
     print("feature_list.json must contain a features array", file=sys.stderr)
     sys.exit(1)
 
-required = ("id", "title", "priority", "status", "user_visible_behavior", "verification", "evidence")
+required = ("id", "lane", "title", "priority", "status", "depends_on", "user_visible_behavior", "verification", "evidence")
 allowed_status = {"not_started", "in_progress", "passing"}
-in_progress = []
+lane_prefix = {"shared": "f-sh-", "ingest": "f-a-", "serve": "f-b-"}
+in_progress = {}
 errors = []
+ids = {f.get("id") for f in features if isinstance(f, dict)}
 
 for index, feature in enumerate(features):
     if not isinstance(feature, dict):
@@ -68,22 +71,33 @@ for index, feature in enumerate(features):
         continue
     if feature["status"] not in allowed_status:
         errors.append(f"{feature_id} has invalid status {feature['status']!r}")
+    lane = feature["lane"]
+    if lane not in lane_prefix:
+        errors.append(f"{feature_id} has invalid lane {lane!r}")
+    elif not feature_id.startswith(lane_prefix[lane]):
+        errors.append(f"{feature_id} does not use the {lane_prefix[lane]} prefix for lane {lane}")
+    for dep in feature["depends_on"]:
+        if dep not in ids:
+            errors.append(f"{feature_id} depends on unknown feature {dep}")
     if feature["status"] == "in_progress":
-        in_progress.append(feature_id)
+        in_progress.setdefault(lane, []).append(feature_id)
     if feature["status"] == "passing" and not str(feature["evidence"]).strip():
         errors.append(f"{feature_id} is passing with empty evidence")
     spec = root / "docs" / f"{feature_id}.md"
     if not spec.is_file():
         errors.append(f"{feature_id} is missing docs/{feature_id}.md")
 
-if len(in_progress) > 1:
-    errors.append("more than one feature is in_progress: " + ", ".join(in_progress))
+for lane, active in in_progress.items():
+    if len(active) > 1:
+        errors.append(f"lane {lane} has more than one in_progress feature: " + ", ".join(active))
 
 if errors:
     print("\n".join(errors), file=sys.stderr)
     sys.exit(1)
 
-print(f"features={len(features)} in_progress={len(in_progress)}")
+passing = sum(1 for f in features if f["status"] == "passing")
+active = ", ".join(i for ids_ in in_progress.values() for i in ids_) or "none"
+print(f"features={len(features)} passing={passing} in_progress={active}")
 PY
   then
     pass "feature_list.json is consistent with docs/"
