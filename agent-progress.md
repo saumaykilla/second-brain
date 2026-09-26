@@ -2,9 +2,9 @@
 
 ## Verified state
 
-Harness skeleton is in place. No application code has been scaffolded.
+The shared foundation is scaffolded: Next.js 16 app shell, shared types (`lib/types.ts`), MongoDB client, placeholder contracts (`lib/contracts/`), the Orbit fixture, db setup and fixture scripts, and `/api/health` and `/api/ready`.
 
-The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Fourteen features are registered, and every feature is `not_started`.
+The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Work is split into three lanes (see `docs/README.md`): shared `f-sh-01..05`, Capture `f-a-01..09`, and Recall `f-b-01..09`. That makes 23 features. `f-sh-04` is `passing`, `f-sh-01` is `in_progress`, and the rest are `not_started`.
 
 Stack this repo is held to:
 
