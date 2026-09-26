@@ -22,39 +22,114 @@ Confirmed product direction:
 - The seeded story is Orbit, a team task app, ingested through the real pipeline.
 - The memory graph and the nightly AWS reflection job are registered after the demo path.
 
+> Note (post-merge): `main` was merged into this branch and introduced a newer
+> `feature_list.json` with lane-based ids (`f-sh-*` shared, `f-a-*` ingest, `f-b-*`
+> serve). Older session logs below reference the previous ids (`f-aws-01`, `f-be-01`,
+> etc.); they are kept as an accurate historical record. The mapping for Person 1's
+> lane: A1→`f-a-01`/`f-a-02`, A2→`f-a-03`, A3→`f-a-06`, A5→`f-a-08`, A6→`f-a-04`,
+> A7→`f-a-05`, A8→`f-a-09`. Step 0 corresponds to `f-sh-04` (now `passing`) and
+> `f-sh-01`/`f-sh-02`/`f-sh-03`.
+
 ## Next best action
 
-Finish `f-sh-01` against the connected Atlas cluster. With `MONGODB_URI` in `.env.local`:
-
-1. Run `pnpm db:setup`, then `pnpm db:fixtures`.
-2. Confirm `GET /api/ready` returns `{ ok: true }`.
-3. Record the output as evidence.
-
-Then verify `f-sh-02` (three search indexes reach READY), `f-sh-03` (active harness v1 read from Atlas), and `f-sh-05` (app shell checked in a browser). After Checkpoint 0, the Capture and Recall lanes start in parallel.
+Finish `f-sh-01` (Platform Foundation): run `pnpm install` on a machine with registry
+access, then `pnpm typecheck`, `pnpm test`, `pnpm build`, and the DB/seed scripts against
+an Atlas cluster (with real OpenAI/OpenRouter keys) to capture the acceptance evidence.
+Then land the `src/` ingestion lane against the real `MongoStore`/`MongoCheckpointer` and
+real provider so the `f-a-*` ingest features can be verified and marked `passing`. Person
+2 can begin the real `checkDeadEnds`/`checkConditions` (`f-b-01`, `f-a-07`) against the
+same foundation.
 
 ## In progress
 
-- `f-sh-01` (shared): code is written and `/api/ready` is implemented. It has not yet been verified against a live Atlas cluster.
+`f-sh-01` — Platform Foundation and Environments. Person 1's ingestion lane (A1–A9) is
+implemented under `src/` on top of the shared foundation (`f-sh-04`, `passing`). None of
+the `f-a-*` ingest features is marked `passing` yet — their acceptance evidence needs a
+live Atlas cluster and real model providers. Note: a parallel foundation exists under
+`lib/` from the other track (merged from `main`); the two need reconciling into one
+canonical layout before the ingest features are verified.
 
 ## Known risks
 
-- MongoDB Atlas is connected to the Vercel project, but the v0 sandbox did not receive the env file, so `db:setup` and `db:fixtures` could not run here. Run them locally or in a deployment.
-- The v0 dev preview failed to start on a sandbox-injected adapter. The production build succeeds.
-- OpenAI, OpenRouter, Slack, and AWS credentials are not configured yet.
-- `checkDeadEnds`, `checkConditions`, and `ingestMessage` are placeholders (keyword and fixture based). Their owning features (`f-b-01`, `f-a-07`, `f-a-03`) replace the bodies without changing the signatures.
+- The Next.js app, Node.js API, and AWS deployment are not scaffolded yet. Step 0 adds
+  the shared TypeScript foundation (types, Atlas schema/index defs, fixtures, placeholder
+  shared functions) but not the running app.
+- Dependencies are not installed in this sandbox (npm registry blocked, INTEGRATIONS_ONLY
+  network → 403). The Step-0 foundation is deliberately dependency-free and type-checks
+  via `npm run typecheck:foundation`. The Atlas scripts (`create-indexes`, `load-fixtures`)
+  import `mongodb` and require `npm install` on a networked machine plus a live Atlas
+  cluster before their evidence can be captured.
+- Fixture embeddings in `fixtures/orbit.json` are deterministic offline placeholders, not
+  OpenAI embeddings. They unblock retrieval work but must be regenerated with real
+  embeddings before eval numbers are trusted.
+- `sandbox` node tooling requires `NODE_OPTIONS` (a missing proxy-bootstrap preload) to be
+  unset for `tsc`/`node` to run in this environment.
+- `./init.sh` checks harness integrity now. App checks start once `package.json` exists.
+- OpenAI, OpenRouter, MongoDB Atlas, Slack, and AWS accounts are not configured in this repository.
 - The retired collaboration-suite plan and its screen images are no longer requirements. Do not restore them as product scope.
 - Graph view, pull-request comments, voice transcription, and nightly reflection are later than the demo path. Starting them first would skip the warning, the citation, and the measured harness change.
 
 ## Session log
 
-### 2026-09-26 — Parallel lanes and shared foundation
+### 2026-09-26 — Person 1 ingestion lane (A1–A9)
 
-- Rewrote `docs/` into three lanes: shared (`f-sh-01..05`), Capture (`f-a-01..09`), and Recall (`f-b-01..09`). Added `docs/README.md` with checkpoints and contracts, plus `docs/setup.md`.
-- `AGENTS.md`, `init.sh`, and the clean-state checklist now allow one `in_progress` feature per lane.
-- Redrew the check-match and Slack warning designs, and added `design/10-capture.png`.
-- Scaffolded the shared foundation code.
-- Evidence: `tsc --noEmit` exit 0; `vitest run` 14/14 passed; `next build` succeeded; `./init.sh` reports `init ok`.
-- `f-sh-04` is `passing`. `f-sh-01` is `in_progress`, pending a live Atlas `/api/ready` check.
+- Built the "getting data in" lane on top of the Step 0 foundation. All dependency-free
+  and offline-runnable; MongoDB/AWS/SDK integrations sit behind seams with in-memory
+  default impls and Atlas/S3 adapters that drop in after `npm install`.
+- **A1/A2 pipeline** (`src/pipeline/`): classify → extract → merge_attempt →
+  embed_and_store → link, each writing a checkpoint. `merge_attempt` merges an
+  attempt_result into an open attempt in the same thread / by the same author within 3
+  days (R9). Prompts come from `getActiveHarness()` (R19). Checkpoints use a
+  MongoDBSaver-style seam (`InMemoryCheckpointer` / `MongoCheckpointer`), never a local
+  file (R34).
+- **A3 Slack** (`src/connectors/slack.ts` + `crypto.ts`): v0 HMAC signature verify,
+  Events API ingest, backfill, and `/brain deadend` calling `checkDeadEnds` (the S4 fake
+  for now) to post a threaded warning.
+- **A4 GitHub** (`src/connectors/github.ts`): signature verify; closed-unmerged PR /
+  revert / wontfix issue → attempt_result; merged PR → decision; backfill helper.
+- **A5 CI/logs** (`src/connectors/ci.ts` + `evidence-store.ts`): `workflow_run`
+  failure → fetch log → store to object storage → Evidence record linked to the attempt
+  (R4).
+- **A6 capture API** (`src/api/capture.ts`): `POST /api/capture` runs the pipeline.
+- **A7 seed** (`src/seed/`, `src/scripts/seed-orbit.ts`): ~150 Orbit messages through the
+  REAL pipeline; attempts/decisions produced by extraction (f-db-02).
+- **A8 worker** (`src/worker/`): job queue + worker entrypoint (App Runner/Lambda) and a
+  validatable EventBridge deployment definition incl. the nightly reflection cron.
+- **A9 Linear** (`src/connectors/linear.ts`): sums logged time into attempt `hoursSpent`.
+- Rewired the shared `ingest()` to delegate to the real pipeline.
+- Verified: `npm run typecheck:foundation` passes (0 errors, no deps). A behavioral smoke
+  test exercised A1–A9 end-to-end — 32/32 assertions passed (attempt merge to 14h, 10
+  checkpoints for 2 messages, noise → no record, Slack sig verify/reject, `/brain
+  deadend` match + no-match, GitHub PR/issue mapping, CI evidence linked to attempt,
+  worker drains queue, Linear hours summed, 150 seed messages → 4 attempts + 4
+  decisions). Temp test artifacts were removed; `./init.sh` exits 0.
+- Design doc: `docs/ingestion-lane.md`. `f-aws-01` remains the single `in_progress`
+  feature; no feature was marked `passing` (Atlas + real providers still required).
+
+### 2026-09-26 — Step 0 shared foundation (S1–S5)
+
+- Marked `f-aws-01` `in_progress`.
+- Scaffolded a dependency-free TypeScript foundation:
+  - **S1** `src/types.ts` — record shapes for messages, attempts, decisions, entities,
+    edges, evidence, warnings, feedback, evals, and harness configs, plus the I/O types
+    for the shared functions. Traces to R1–R6, R19.
+  - **S2** `src/db/schema.ts` — declarative collection + index definitions (vector on
+    attempts/decisions embeddings, Atlas Search text, compound `{projectId, createdAt}`,
+    and `edges.from`/`edges.to`); `src/db/client.ts` and `src/scripts/create-indexes.ts`
+    apply them to Atlas.
+  - **S3** `src/fixtures/orbit.ts` + `fixtures/orbit.json` — hand-written Orbit story:
+    4 dead ends, 5 decisions, 10 edges, 4 evidence, v1 harness config, with deterministic
+    offline embeddings; `src/scripts/load-fixtures.ts` loads it into Atlas.
+  - **S4** `src/shared/index.ts` — placeholder `checkDeadEnds()`, `checkConditions()`,
+    `getActiveHarness()`, `ingest()` returning fake data from the fixture.
+  - **S5** `package.json`, `tsconfig*.json`, `.env.example`, `.gitignore`, `README.md`.
+- Verified: `npm run typecheck:foundation` passes (0 errors); behavioral smoke test shows
+  `checkDeadEnds` matches the socket.io intent to the WebSockets dead end (14h saved),
+  returns no matches for an unrelated idea and for a different project (isolation), and
+  `checkConditions` flips the WebSockets attempt to `revisitable` on the App Runner
+  decision. `./init.sh` exits 0.
+- Not done this session: `npm install`, Atlas-backed script runs, and the Next.js/API
+  app. `f-aws-01` is therefore left `in_progress`, not `passing`.
 
 ### 2026-09-26 — ProjectBrain screen designs
 
