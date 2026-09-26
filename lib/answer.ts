@@ -13,7 +13,33 @@ import { readEnv } from './env'
 import { getActiveHarness } from './contracts/get-active-harness'
 import { retrieveAttempts, retrieveDecisions, retrieveDocuments } from './retrieval'
 import { getFixture } from './fixtures'
-import type { Attempt, Decision, KnowledgeDoc } from './types'
+import type { Attempt, Decision, HarnessConfig, KnowledgeDoc } from './types'
+
+// Used only when no active harness exists (no DB and no fixture harness) so
+// retrieval/compose still have valid settings instead of crashing.
+const FALLBACK_HARNESS: HarnessConfig = {
+  _id: 'fallback',
+  projectId: 'fallback',
+  version: 0,
+  active: false,
+  prompts: {
+    classify: '',
+    extract: '',
+    judge: '',
+    answer: 'Answer only from the cited records. Never present a superseded decision as current.',
+    conditions: '',
+  },
+  retrieval: { k: 8, minScore: 0.72, hybridWeight: 0.3 },
+  mergeWindowDays: 7,
+  routing: {
+    classify: 'openai/gpt-4o-mini',
+    extract: 'openai/gpt-4o-mini',
+    judge: 'openai/gpt-4o',
+    reflect: 'openai/gpt-4o',
+    embed: 'text-embedding-3-small',
+  },
+  createdAt: new Date(0).toISOString(),
+}
 
 export interface Citation {
   kind: 'attempt' | 'decision' | 'document'
@@ -76,11 +102,11 @@ export function excerptOf(text: string, question: string): string {
 }
 
 export async function answerQuestion(projectId: string, question: string): Promise<AnswerResult> {
-  let harness
+  let harness: HarnessConfig
   try {
     harness = await getActiveHarness(projectId)
   } catch {
-    harness = undefined
+    harness = FALLBACK_HARNESS
   }
   // Decisions for the supersededBy chain: the database when configured, the
   // fixture only offline.

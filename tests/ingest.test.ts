@@ -116,7 +116,12 @@ describe.skipIf(!hasDb)('ingest pipeline (f-a-03, MongoDB)', { timeout: 30_000 }
     expect(better.decisionIds).toHaveLength(1)
 
     const db = await getDb()
-    const byId = new Map((await db.collection('decisions').find({ projectId }).toArray()).map((d) => [String(d._id), d]))
+    type DecisionRow = { _id: string; status?: string; supersededBy?: string; embedding?: number[] }
+    const decisionRows = (await db
+      .collection<DecisionRow>('decisions')
+      .find({ projectId })
+      .toArray()) as DecisionRow[]
+    const byId = new Map<string, DecisionRow>(decisionRows.map((d) => [String(d._id), d] as [string, DecisionRow]))
     expect(byId.get(sessions.decisionIds[0])).toMatchObject({ status: 'superseded', supersededBy: jwt.decisionIds[0] })
     expect(byId.get(jwt.decisionIds[0])).toMatchObject({ status: 'superseded', supersededBy: better.decisionIds[0] })
     expect(byId.get(better.decisionIds[0])?.status).toBe('active')

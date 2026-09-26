@@ -7,7 +7,7 @@
 
 import { collection, isDbConfigured } from './db'
 import { getFixture } from './fixtures'
-import { cosineSimilarity, embed, localEmbed } from './models'
+import { cosineSimilarity, embed, embeddingProvider, localEmbed } from './models'
 import type { Attempt, Decision, DocSource, HarnessConfig, KnowledgeDoc } from './types'
 
 export interface Candidate<T> {
