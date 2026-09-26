@@ -23,7 +23,7 @@ export function getClient(): Promise<MongoClient> {
   const uri = readEnv().MONGODB_URI
   if (!uri) throw new Error('MONGODB_URI is not set')
   if (!globalForMongo.__mongoClient) {
-    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, appName: 'projectbrain' })
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, appName: 'second-brain' })
     globalForMongo.__mongoClient = client.connect().catch((error) => {
       globalForMongo.__mongoClient = undefined
       throw error

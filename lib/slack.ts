@@ -1,6 +1,6 @@
 // Slack proactive warnings (f-b-05).
 //
-// When an intent in Slack matches a dead end, ProjectBrain replies in the thread
+// When an intent in Slack matches a dead end, Second Brain replies in the thread
 // with the past attempt, blocker, evidence, alternative, and hours saved (R13,
 // R29, F2). A non-matching message posts nothing (R14). Each posted warning is
 // recorded in `warnings`; a "Not relevant" action is stored as feedback (R15).
