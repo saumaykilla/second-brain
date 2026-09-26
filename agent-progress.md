@@ -2,9 +2,9 @@
 
 ## Verified state
 
-Harness skeleton is in place. No application code has been scaffolded.
+The shared foundation is scaffolded: Next.js 16 app shell, shared types (`lib/types.ts`), MongoDB client, placeholder contracts (`lib/contracts/`), the Orbit fixture, db setup and fixture scripts, and `/api/health` and `/api/ready`.
 
-The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Fourteen features are registered, and every feature is `not_started`.
+The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Work is split into three lanes (see `docs/README.md`): shared `f-sh-01..05`, Capture `f-a-01..09`, and Recall `f-b-01..09`. That makes 23 features. `f-sh-04` is `passing`, `f-sh-01` is `in_progress`, and the rest are `not_started`.
 
 Stack this repo is held to:
 
@@ -24,21 +24,37 @@ Confirmed product direction:
 
 ## Next best action
 
-Begin `f-aws-01` by marking it `in_progress`, reading `docs/f-aws-01.md`, and creating an implementation-ready technical plan before scaffolding code.
+Finish `f-sh-01` against the connected Atlas cluster. With `MONGODB_URI` in `.env.local`:
+
+1. Run `pnpm db:setup`, then `pnpm db:fixtures`.
+2. Confirm `GET /api/ready` returns `{ ok: true }`.
+3. Record the output as evidence.
+
+Then verify `f-sh-02` (three search indexes reach READY), `f-sh-03` (active harness v1 read from Atlas), and `f-sh-05` (app shell checked in a browser). After Checkpoint 0, the Capture and Recall lanes start in parallel.
 
 ## In progress
 
-None.
+- `f-sh-01` (shared): code is written and `/api/ready` is implemented. It has not yet been verified against a live Atlas cluster.
 
 ## Known risks
 
-- The Next.js app, Node.js API, MongoDB connection, and AWS deployment are not scaffolded yet.
-- `./init.sh` checks harness integrity now. App checks start once `package.json` exists.
-- OpenAI, OpenRouter, MongoDB Atlas, Slack, and AWS accounts are not configured in this repository.
+- MongoDB Atlas is connected to the Vercel project, but the v0 sandbox did not receive the env file, so `db:setup` and `db:fixtures` could not run here. Run them locally or in a deployment.
+- The v0 dev preview failed to start on a sandbox-injected adapter. The production build succeeds.
+- OpenAI, OpenRouter, Slack, and AWS credentials are not configured yet.
+- `checkDeadEnds`, `checkConditions`, and `ingestMessage` are placeholders (keyword and fixture based). Their owning features (`f-b-01`, `f-a-07`, `f-a-03`) replace the bodies without changing the signatures.
 - The retired collaboration-suite plan and its screen images are no longer requirements. Do not restore them as product scope.
 - Graph view, pull-request comments, voice transcription, and nightly reflection are later than the demo path. Starting them first would skip the warning, the citation, and the measured harness change.
 
 ## Session log
+
+### 2026-09-26 — Parallel lanes and shared foundation
+
+- Rewrote `docs/` into three lanes: shared (`f-sh-01..05`), Capture (`f-a-01..09`), and Recall (`f-b-01..09`). Added `docs/README.md` with checkpoints and contracts, plus `docs/setup.md`.
+- `AGENTS.md`, `init.sh`, and the clean-state checklist now allow one `in_progress` feature per lane.
+- Redrew the check-match and Slack warning designs, and added `design/10-capture.png`.
+- Scaffolded the shared foundation code.
+- Evidence: `tsc --noEmit` exit 0; `vitest run` 14/14 passed; `next build` succeeded; `./init.sh` reports `init ok`.
+- `f-sh-04` is `passing`. `f-sh-01` is `in_progress`, pending a live Atlas `/api/ready` check.
 
 ### 2026-09-26 — ProjectBrain screen designs
 
