@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": []
+  },
+  "include": [
+    "src/types.ts",
+    "src/shared/**/*.ts",
+    "src/fixtures/**/*.ts",
+    "src/db/schema.ts"
+  ],
+  "exclude": [
+    "src/scripts/**/*.ts",
+    "src/db/client.ts"
+  ]
+}
