@@ -3,6 +3,11 @@ node_modules/
 .pnp
 .pnp.js
 
+# Next.js
+.next/
+out/
+next-env.d.ts
+
 # Build output
 dist/
 build/
@@ -12,6 +17,9 @@ build/
 .env
 .env.*
 !.env.example
+
+# Vercel
+.vercel
 
 # Logs
 *.log
