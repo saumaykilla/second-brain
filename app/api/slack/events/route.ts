@@ -3,7 +3,7 @@ import { handleSlackMessage, verifySlackSignature, type SlackClient, type SlackM
 
 export const dynamic = 'force-dynamic'
 
-const PROJECT_ID = process.env.DEFAULT_PROJECT_ID ?? 'orbit'
+const PROJECT_ID = process.env.DEFAULT_PROJECT_ID?.trim() || 'default'
 
 // Slack Web API client using the bot token (f-b-05). Falls back to a no-op when
 // no token is configured so local/dev events do not fail.

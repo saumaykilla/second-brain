@@ -3,7 +3,7 @@ import { recordWarningFeedback, verifySlackSignature } from '@/lib/slack'
 
 export const dynamic = 'force-dynamic'
 
-const PROJECT_ID = process.env.DEFAULT_PROJECT_ID ?? 'orbit'
+const PROJECT_ID = process.env.DEFAULT_PROJECT_ID?.trim() || 'default'
 
 // Slack interactivity handler (f-b-05): the "Not relevant" button on a warning
 // posts here as an application/x-www-form-urlencoded `payload=<json>`. We store

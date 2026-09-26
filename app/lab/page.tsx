@@ -28,7 +28,7 @@ export default function LabPage() {
   async function load() {
     setStatus('loading')
     try {
-      const res = await fetch('/api/harness?projectId=orbit')
+      const res = await fetch('/api/harness')
       const json = (await res.json()) as HarnessResponse
       setData(json)
       setStatus('done')
@@ -45,7 +45,7 @@ export default function LabPage() {
     setReflecting(true)
     setReflectMsg(null)
     try {
-      const res = await fetch('/api/reflect', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"projectId":"orbit"}' })
+      const res = await fetch('/api/reflect', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
       const json = (await res.json()) as { promoted: boolean; reason: string; change: string }
       setReflectMsg(`${json.change} — ${json.reason}`)
       // The timeline of versions only updates after a promotion.
@@ -80,7 +80,9 @@ export default function LabPage() {
       {status === 'error' ? <ErrorState title="Could not load harness versions" /> : null}
 
       {status === 'done' && data && data.versions.length === 0 ? (
-        <EmptyState title="No harness versions yet" />
+        <EmptyState title="No promoted versions yet">
+          <p>This project runs on the default v1 settings. Versions appear here once reflection promotes or rejects a change.</p>
+        </EmptyState>
       ) : null}
 
       {status === 'done' && data ? (

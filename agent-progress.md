@@ -4,7 +4,7 @@
 
 The shared foundation is scaffolded: Next.js 16 app shell, shared types (`lib/types.ts`), MongoDB client, placeholder contracts (`lib/contracts/`), the Orbit fixture, db setup and fixture scripts, and `/api/health` and `/api/ready`.
 
-The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Work is split into three lanes (see `docs/README.md`): shared `f-sh-01..05`, Capture `f-a-01..09`, and Recall `f-b-01..09`. That makes 23 features. `passing`: `f-sh-04`, `f-b-01`, `f-b-06`, `f-b-07`. `in_progress`: `f-sh-01` (shared lane), `f-b-02` (serve lane). The rest are `not_started`.
+The product contract is `docs/plans/2026-09-26-002-feat-projectbrain-dead-end-memory-plan.md`. Work is split into three lanes (see `docs/README.md`): shared `f-sh-01..05`, Capture `f-a-01..10`, and Recall `f-b-01..10`. That makes 25 features. `passing`: `f-sh-04`, `f-a-01`, `f-a-02`, `f-a-03`, `f-a-07`, `f-a-10`, `f-b-01`, `f-b-06`, `f-b-07`, `f-b-10`. `in_progress`: `f-sh-01` (shared lane), `f-b-02` (serve lane). The rest are `not_started`.
 
 The whole Recall/serve lane (`f-b-01..09`) is now implemented on the Next.js app: real dead-end retrieval + judge, `/check`, `/ask`, timeline + dead-end detail, Slack proactive warning, the 40-case eval + runner, reflection + promotion, Harness Lab, Impact, and the Memory Graph. Verified offline with automated behavioral tests; browser/Atlas/live-provider verification is still outstanding for the UI-only and DB-only steps.
 
@@ -34,7 +34,9 @@ Confirmed product direction:
 
 ## Next best action
 
-Run `pnpm install` + `pnpm build` + `pnpm test` on a networked machine to confirm the
+`f-a-06` Slack capture through the same `ingestMessage`, then `f-b-05` so Check's match posts a threaded warning. Run `pnpm db:setup` once so retrieval uses Atlas Search indexes instead of the in-memory ranking.
+
+(Earlier note) Run `pnpm install` + `pnpm build` + `pnpm test` on a networked machine to confirm the
 Vercel build is green and the vitest suite (incl. the f-b-01 contract tests) passes, then
 exercise `/check`, `/ask`, `/`, `/lab`, `/impact`, `/graph` in a browser and run
 `pnpm eval` / `pnpm reflect` against Atlas to capture the browser/DB evidence needed to
@@ -57,8 +59,26 @@ live Atlas cluster and real model providers. Note: a parallel foundation exists 
 `lib/` from the other track (merged from `main`); the two need reconciling into one
 canonical layout before the ingest features are verified.
 
-## Known risks
+## Connected sources (f-a-10, passing)
 
+`/sources` connects the person's own GitHub and Notion through OAuth, lists the repositories and pages they can see, and syncs only the checked ones into `source_chunks` (chunked, embedded, per project). `/api/ask` retrieves from those chunks alongside attempts and decisions and cites the page or file with a URL. Tokens stay in `integrations` and in the server env; no `use client` file references them. New collections (`integrations`, `oauth_states`, `source_chunks`) live behind `lib/sources/` with indexes created on first use, so `lib/types.ts`, the contracts, and the three Atlas Search indexes are unchanged. Cross-lane touch, recorded here: `lib/answer.ts`, `lib/retrieval.ts` (vector search now falls back to the fixture when the index is missing instead of throwing), `lib/models.ts` (OpenRouter embeddings when only that key is set; `EMBEDDINGS=local` forces the offline embedding), `app/ask/page.tsx` (doc citations, project id comes from the server), `components/nav-links.tsx` (Sources).
+
+Local env now lives in `.env.local` (gitignored). It was recreated after a `git pull` fast-forward replaced the earlier layout and removed the untracked `.env`. `DEFAULT_PROJECT_ID=orbit` scopes Sources and Ask. `MONGODB_DB=second-brain` keeps this app off the earlier Python-era `projectbrain` database.
+
+## Screens read project memory (f-b-10, passing)
+
+The product project is `DEFAULT_PROJECT_ID` (`second-brain` locally). Timeline reads attempts and decisions from MongoDB; Capture stores messages through `ingestMessage` and lists recent captures; Ask, Check, Graph, Lab, and Impact call their APIs without a project id and the routes default to `defaultProjectId()`. The Orbit fixture backs screens only when `MONGODB_URI` is unset. `getActiveHarness` now falls back to the v1 configuration from the sample fixture (with the project id swapped in) when a project has no stored version — a shared-lane behavior change with the signature unchanged, recorded here because the user asked for the screens to run on their own project. `lib/retrieval.ts` returns no results, not sample records, when a vector index is missing. Serve lane note: `f-b-02` was already `in_progress` for the other person; `f-b-10` was worked at the user's direct request and is now `passing`, so the lane is back to one `in_progress`.
+
+## Ingest pipeline (f-a-01, f-a-02, f-a-03, passing)
+
+`ingestMessage` is real: `lib/ingest/classify.ts` labels with the harness small model and prompt (label guide appended, rule fallback only without a key), `lib/ingest/extract.ts` fills zod schemas for attempts and decisions with the R3 blocker types, and `lib/ingest/pipeline.ts` stores the message, merges a result into the attempt started in the same thread or by the same author inside `mergeWindowDays`, marks replaced decisions superseded with `superseded_by` edges, links `alternative_to`, upserts entities, embeds, runs `checkConditions`, and writes a trace per step. `attempt_start` is stored as a message only; the attempt is created when the result arrives, so no attempt shows a made-up outcome. `lib/retrieval.ts` ranks the project's own stored records in memory when Atlas Vector Search returns nothing or is missing, so Check works before `pnpm db:setup`. The `src/` ingestion track remains an offline stub and is not wired in.
+
+`checkConditions` (`f-a-07`) is real too: it considers every attempt in the project with an open condition (not the dead-end retrieval cutoff, since a decision can satisfy a condition without reading like the attempt), asks the harness judge, marks conditions met, flips the attempt to revisitable, and adds one `unblocks` edge; replays are no-ops. No contract in `lib/contracts/` is a placeholder any more. With the user's approval the three placeholder-era test captures were deleted and the first attempt corrected to 16 hours.
+
+## Known risks
+- `tests/shared.test.ts` placeholder-contract tests time out at 5s when `MONGODB_URI` and `OPENROUTER_API_KEY` are exported, because `checkDeadEnds` then reaches Atlas and the live judge. They pass offline. Run the suite without those variables, or raise the timeout for that file.
+- The `second-brain` database has no Atlas Search indexes yet (`pnpm db:setup` was not run this session). Attempt and decision retrieval falls back to the Orbit fixture until it is.
+- GitHub sync reads up to 80 text files per repository on the default branch and Notion up to 50 database rows; saving a selection re-reads everything rather than syncing incrementally.
 - The Next.js app, Node.js API, and AWS deployment are not scaffolded yet. Step 0 adds
   the shared TypeScript foundation (types, Atlas schema/index defs, fixtures, placeholder
   shared functions) but not the running app.
@@ -78,6 +98,25 @@ canonical layout before the ingest features are verified.
 - Graph view, pull-request comments, voice transcription, and nightly reflection are later than the demo path. Starting them first would skip the warning, the citation, and the measured harness change.
 
 ## Session log
+
+### 2026-09-26 — Revisitable conditions (f-a-07)
+
+- Replaced the last placeholder contract. The App Runner decision reopened the WebSockets dead end on the real project with the judge's explanation; the Timeline shows it amber. Deleted the three placeholder-era test captures and corrected the attempt to 16 hours at the user's request.
+
+### 2026-09-26 — Real ingest pipeline (f-a-01..03)
+
+- Replaced the keyword placeholder behind `ingestMessage` with classify → extract → merge → embed → link → conditions → trace, driven by the harness prompts and routing through OpenRouter. Tests in `tests/ingest.test.ts` (8, MongoDB) and live captures produced the WebSockets dead end, the App Runner decision, and a 0.95 Check match on the real project.
+
+### 2026-09-26 — Real-project screens and a faster GitHub sync (f-b-10, f-a-10)
+
+- GitHub files are fetched eight at a time and chunks embedded in batches of 64. Re-syncing `saumaykilla/concensus-ai` fell from about 100s to 10.7s.
+- Timeline and Capture read and write MongoDB; Capture is a working form, covered by `tests/capture.test.ts` (labels, validation, storage, project isolation) and a browser pass with a decision, an attempt result, and a question. API routes and screens use `DEFAULT_PROJECT_ID`; Orbit copy and example buttons are gone. Records moved from `orbit` to `second-brain`. Removed the unused `fixture-summary` component and empty route folders left from the earlier layout.
+
+### 2026-09-26 — Connect Notion and GitHub, then ask over them (f-a-10)
+
+- Added `docs/f-a-10.md`, registered `f-a-10` (ingest lane), and implemented `lib/sources/` (OAuth, catalog, chunking, sync, text-index plus cosine retrieval), `/api/sources`, `/api/sources/:provider/{connect,callback,selection}`, `/sources` with a checkbox picker, and doc citations on `/ask`.
+- Reinstalled dependencies with `pnpm install` (the leftover `node_modules` was from the previous layout) and recreated `.env.local`.
+- Verified with typecheck, the offline suite, the MongoDB integration suite against mocked provider APIs, and the browser: Connect GitHub reached GitHub sign-in and Connect Notion reached Notion's install screen. A real sign-in needs the user's own account.
 
 ### 2026-09-26 — Fix Vercel build + implement Recall/serve lane (f-b-01..09)
 

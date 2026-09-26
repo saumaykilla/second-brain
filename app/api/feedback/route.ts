@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { collection, isDbConfigured } from '@/lib/db'
+import { defaultProjectId } from '@/lib/env'
 import type { Feedback } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: 'invalid_json' }, { status: 400 })
   }
 
-  const projectId = body.projectId?.trim() || 'orbit'
+  const projectId = body.projectId?.trim() || defaultProjectId()
   const kind = body.target?.kind
   const id = body.target?.id?.trim()
   const verdict = body.verdict
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
 // GET /api/feedback?projectId=&targetId=  -> read feedback back (f-b-02 verify).
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const projectId = url.searchParams.get('projectId') || 'orbit'
+  const projectId = url.searchParams.get('projectId') || defaultProjectId()
   const targetId = url.searchParams.get('targetId')
 
   if (!isDbConfigured()) {

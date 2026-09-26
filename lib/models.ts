@@ -38,22 +38,73 @@ export function localEmbed(text: string): number[] {
   return vec.map((v) => v / norm)
 }
 
+export type EmbeddingProvider = 'openai' | 'openrouter' | 'local'
+
 /**
- * Embed text for retrieval. Uses OpenAI when OPENAI_API_KEY is set, otherwise a
- * deterministic local embedding so retrieval works offline.
+ * Which embedding transport `embed` will use right now. Stored on synced
+ * chunks so a query embedded with a different provider is not compared to them.
+ * `EMBEDDINGS=local` forces the offline embedding (tests).
+ */
+export function embeddingProvider(): EmbeddingProvider {
+  if (process.env.EMBEDDINGS === 'local') return 'local'
+  const env = readEnv()
+  if (env.OPENAI_API_KEY) return 'openai'
+  if (env.OPENROUTER_API_KEY) return 'openrouter'
+  return 'local'
+}
+
+/**
+ * Embed text for retrieval. Uses OpenAI when OPENAI_API_KEY is set, OpenRouter
+ * when only OPENROUTER_API_KEY is set, otherwise a deterministic local
+ * embedding so retrieval works offline.
  */
 export async function embed(text: string, harness?: HarnessConfig): Promise<number[]> {
-  const key = readEnv().OPENAI_API_KEY
-  if (!key) return localEmbed(text)
-  const model = harness?.routing.embed ?? 'text-embedding-3-small'
-  const res = await fetch('https://api.openai.com/v1/embeddings', {
+  const provider = embeddingProvider()
+  if (provider === 'local') return localEmbed(text)
+  const env = readEnv()
+  const input = text.slice(0, 8000)
+  const url = provider === 'openai' ? 'https://api.openai.com/v1/embeddings' : 'https://openrouter.ai/api/v1/embeddings'
+  const key = provider === 'openai' ? env.OPENAI_API_KEY : env.OPENROUTER_API_KEY
+  const base = harness?.routing.embed ?? 'text-embedding-3-small'
+  const model = provider === 'openrouter' && !base.includes('/') ? `openai/${base}` : base
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-    body: JSON.stringify({ model, input: text }),
+    body: JSON.stringify({ model, input }),
   })
   if (!res.ok) throw new Error(`embedding failed: ${res.status}`)
   const data = (await res.json()) as { data: Array<{ embedding: number[] }> }
   return data.data[0].embedding
+}
+
+const EMBED_BATCH = 64
+
+/**
+ * Embed many texts. Sends batches to the provider so a sync of hundreds of
+ * chunks takes a handful of requests instead of one per chunk.
+ */
+export async function embedMany(texts: string[], harness?: HarnessConfig): Promise<number[][]> {
+  const provider = embeddingProvider()
+  if (provider === 'local') return texts.map(localEmbed)
+  const env = readEnv()
+  const url = provider === 'openai' ? 'https://api.openai.com/v1/embeddings' : 'https://openrouter.ai/api/v1/embeddings'
+  const key = provider === 'openai' ? env.OPENAI_API_KEY : env.OPENROUTER_API_KEY
+  const base = harness?.routing.embed ?? 'text-embedding-3-small'
+  const model = provider === 'openrouter' && !base.includes('/') ? `openai/${base}` : base
+  const out: number[][] = []
+  for (let start = 0; start < texts.length; start += EMBED_BATCH) {
+    const input = texts.slice(start, start + EMBED_BATCH).map((t) => t.slice(0, 8000))
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, input }),
+    })
+    if (!res.ok) throw new Error(`embedding failed: ${res.status}`)
+    const data = (await res.json()) as { data: Array<{ index?: number; embedding: number[] }> }
+    const ordered = [...data.data].sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+    out.push(...ordered.map((d) => d.embedding))
+  }
+  return out
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {

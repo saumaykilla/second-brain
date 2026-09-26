@@ -1,4 +1,5 @@
 import { collection, isDbConfigured } from '@/lib/db'
+import { defaultProjectId } from '@/lib/env'
 import { listHarnessVersions } from '@/lib/harness/store'
 import { getFixture } from '@/lib/fixtures'
 import type { Feedback, Warning } from '@/lib/types'
@@ -9,7 +10,7 @@ export const dynamic = 'force-dynamic'
 // warnings, and the precision trend across harness versions (R27, f-b-08).
 export async function GET(request: Request) {
   const url = new URL(request.url)
-  const projectId = url.searchParams.get('projectId') || 'orbit'
+  const projectId = url.searchParams.get('projectId') || defaultProjectId()
 
   const versions = await listHarnessVersions(projectId)
   const precisionTrend = versions

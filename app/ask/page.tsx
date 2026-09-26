@@ -21,10 +21,7 @@ interface AskResponse {
   error?: string
 }
 
-const EXAMPLES = [
-  'Why did we not use Postgres for search?',
-  'What authentication does Orbit use?',
-]
+const EXAMPLES = ['Why did we drop that approach?', 'How does our API handle authentication?']
 
 export default function AskPage() {
   const [question, setQuestion] = useState('')
@@ -40,7 +37,7 @@ export default function AskPage() {
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectId: 'orbit', question }),
+        body: JSON.stringify({ question }),
       })
       const data = (await res.json()) as AskResponse
       if (!res.ok || !data.ok) throw new Error(data.error ?? 'Ask failed')
@@ -101,7 +98,10 @@ export default function AskPage() {
 
       {status === 'done' && result?.unsupported ? (
         <EmptyState title="Not enough in memory">
-          <p>I could not find a decision or attempt that answers that, so I will not guess.</p>
+          <p>
+            I could not find a decision, attempt, or connected page that answers that, so I will not guess. Connect more on
+            Sources if the answer lives in Notion or GitHub.
+          </p>
         </EmptyState>
       ) : null}
 

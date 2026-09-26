@@ -15,6 +15,40 @@ export interface Candidate<T> {
   score: number
 }
 
+/**
+ * In-memory ranking of stored records when Atlas Vector Search is not
+ * available. Uses the stored embedding when it came from the current provider,
+ * otherwise a local embedding of the text; the minScore cutoff only applies to
+ * provider embeddings, since local scores are on a different scale.
+ */
+async function rankStored<T extends { embedding?: number[]; embeddingProvider?: string }>(
+  docs: T[],
+  queryText: string,
+  textOf: (doc: T) => string,
+  k: number,
+  minScore: number,
+): Promise<Array<Candidate<T>>> {
+  if (docs.length === 0) return []
+  const provider = embeddingProvider()
+  let query: number[]
+  try {
+    query = await embed(queryText)
+  } catch {
+    query = localEmbed(queryText)
+  }
+  const localQuery = localEmbed(queryText)
+  return docs
+    .map((doc) => {
+      const native = provider !== 'local' && doc.embedding && doc.embeddingProvider === provider
+      const score = native ? cosineSimilarity(query, doc.embedding!) : cosineSimilarity(localQuery, localEmbed(textOf(doc)))
+      return { doc, score, native }
+    })
+    .filter((c) => (c.native ? c.score >= minScore : c.score > 0))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, k)
+    .map(({ doc, score }) => ({ doc, score }))
+}
+
 /** Retrieve failed/abandoned attempts most similar to the query (R12). */
 export async function retrieveAttempts(
   projectId: string,
@@ -24,25 +58,38 @@ export async function retrieveAttempts(
   const { k, minScore } = harness.retrieval
 
   if (isDbConfigured()) {
-    const queryVector = await embed(queryText, harness)
-    const attempts = await collection('attempts')
-    const cursor = attempts.aggregate<Attempt & { __score: number }>([
-      {
-        $vectorSearch: {
-          index: 'attempts_vector',
-          path: 'embedding',
-          queryVector,
-          numCandidates: Math.max(50, k * 10),
-          limit: k,
-          filter: { projectId, outcome: { $in: ['failed', 'abandoned'] } },
+    try {
+      const queryVector = await embed(queryText, harness)
+      const attempts = await collection('attempts')
+      const cursor = attempts.aggregate<Attempt & { __score: number }>([
+        {
+          $vectorSearch: {
+            index: 'attempts_vector',
+            path: 'embedding',
+            queryVector,
+            numCandidates: Math.max(50, k * 10),
+            limit: k,
+            filter: { projectId, outcome: { $in: ['failed', 'abandoned'] } },
+          },
         },
-      },
-      { $addFields: { __score: { $meta: 'vectorSearchScore' } } },
-    ])
-    const docs = await cursor.toArray()
-    return docs
-      .filter((d) => d.__score >= minScore)
-      .map((d) => ({ doc: d as Attempt, score: d.__score }))
+        { $addFields: { __score: { $meta: 'vectorSearchScore' } } },
+      ])
+      const docs = await cursor.toArray()
+      if (docs.length > 0) {
+        return docs
+          .filter((d) => d.__score >= minScore)
+          .map((d) => ({ doc: d as Attempt, score: d.__score }))
+      }
+      throw new Error('vector_search_empty')
+    } catch {
+      // The vector index may not exist yet on this database. Rank the
+      // project's own stored attempts in memory instead of using the fixture.
+      const stored = (await (await collection('attempts'))
+        .find({ projectId, outcome: { $in: ['failed', 'abandoned'] } })
+        .limit(500)
+        .toArray()) as Array<Attempt & { embeddingProvider?: string }>
+      return rankStored(stored, queryText, (a) => `${a.goal} ${a.approach}`, k, minScore)
+    }
   }
 
   // Fixture fallback: embed locally and cosine-rank.
@@ -68,23 +115,33 @@ export async function retrieveDecisions(
   const { k, minScore } = harness.retrieval
 
   if (isDbConfigured()) {
-    const queryVector = await embed(queryText, harness)
-    const decisions = await collection('decisions')
-    const cursor = decisions.aggregate<Decision & { __score: number }>([
-      {
-        $vectorSearch: {
-          index: 'decisions_vector',
-          path: 'embedding',
-          queryVector,
-          numCandidates: Math.max(50, k * 10),
-          limit: k,
-          filter: { projectId },
+    try {
+      const queryVector = await embed(queryText, harness)
+      const decisions = await collection('decisions')
+      const cursor = decisions.aggregate<Decision & { __score: number }>([
+        {
+          $vectorSearch: {
+            index: 'decisions_vector',
+            path: 'embedding',
+            queryVector,
+            numCandidates: Math.max(50, k * 10),
+            limit: k,
+            filter: { projectId },
+          },
         },
-      },
-      { $addFields: { __score: { $meta: 'vectorSearchScore' } } },
-    ])
-    const docs = await cursor.toArray()
-    return docs.filter((d) => d.__score >= minScore).map((d) => ({ doc: d as Decision, score: d.__score }))
+        { $addFields: { __score: { $meta: 'vectorSearchScore' } } },
+      ])
+      const docs = await cursor.toArray()
+      if (docs.length > 0) {
+        return docs.filter((d) => d.__score >= minScore).map((d) => ({ doc: d as Decision, score: d.__score }))
+      }
+      throw new Error('vector_search_empty')
+    } catch {
+      const stored = (await (await collection('decisions')).find({ projectId }).limit(500).toArray()) as Array<
+        Decision & { embeddingProvider?: string }
+      >
+      return rankStored(stored, queryText, (d) => `${d.title} ${d.rationale}`, k, minScore)
+    }
   }
 
   const fixture = getFixture(projectId)

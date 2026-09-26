@@ -51,3 +51,16 @@ export function missingKeys(keys: EnvKey[], env: Env = readEnv()): EnvKey[] {
 export function dbName(env: Env = readEnv()): string {
   return env.MONGODB_DB ?? 'second-brain'
 }
+
+/**
+ * Project every screen and API route uses when the request does not name one.
+ * `orbit` is the sample fixture and is not the default for a real deployment.
+ */
+export function defaultProjectId(env: Env = readEnv()): string {
+  return env.DEFAULT_PROJECT_ID ?? 'default'
+}
+
+/** Public origin of this app, used to build OAuth redirect URIs. */
+export function appUrl(env: Env = readEnv()): string {
+  return (env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
+}

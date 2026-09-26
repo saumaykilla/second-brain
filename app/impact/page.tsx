@@ -19,7 +19,7 @@ export default function ImpactPage() {
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch('/api/impact?projectId=orbit')
+        const res = await fetch('/api/impact')
         setData((await res.json()) as ImpactResponse)
         setStatus('done')
       } catch {

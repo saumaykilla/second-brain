@@ -1,11 +1,14 @@
-// Cited answers (f-b-03).
+// Cited answers (f-b-03, f-a-10).
 //
 // Answers a project question by retrieving relevant decisions and attempts and
-// citing them. A superseded decision is never presented as the current one
-// (R16, R17): the answer follows the supersededBy chain to the active decision
-// and marks older ones as superseded. Uses the strong model when configured,
-// else a deterministic composed answer so it runs offline.
+// the connected Notion pages and GitHub files, then citing them. A superseded
+// decision is never presented as the current one (R16, R17): the answer
+// follows the supersededBy chain to the active decision and marks older ones
+// as superseded. Uses the strong model when configured, else a deterministic
+// composed answer so it runs offline. Nothing is invented when no record
+// supports the question (R14).
 
+import { collection, isDbConfigured } from './db'
 import { readEnv } from './env'
 import { getActiveHarness } from './contracts/get-active-harness'
 import { retrieveAttempts, retrieveDecisions, retrieveDocuments } from './retrieval'
@@ -31,6 +34,9 @@ export interface AnswerResult {
   unsupported: boolean
 }
 
+const SOURCE_HITS = 5
+const EXCERPT_CHARS = 280
+
 /** Follow the supersededBy chain to the current decision (R17). */
 export function resolveCurrent(decisions: Decision[], start: Decision): Decision {
   const byId = new Map(decisions.map((d) => [d._id, d]))
@@ -43,15 +49,47 @@ export function resolveCurrent(decisions: Decision[], start: Decision): Decision
   return cur
 }
 
+async function safe<T>(work: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await work
+  } catch {
+    return fallback
+  }
+}
+
+export function excerptOf(text: string, question: string): string {
+  const clean = text.replace(/\s+/g, ' ').trim()
+  if (clean.length <= EXCERPT_CHARS) return clean
+  const terms = question
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((t) => t.length > 3)
+  const lower = clean.toLowerCase()
+  let at = -1
+  for (const term of terms) {
+    at = lower.indexOf(term)
+    if (at >= 0) break
+  }
+  const start = Math.max(0, Math.min(at < 0 ? 0 : at - 80, clean.length - EXCERPT_CHARS))
+  const slice = clean.slice(start, start + EXCERPT_CHARS).trim()
+  return `${start > 0 ? '…' : ''}${slice}${start + EXCERPT_CHARS < clean.length ? '…' : ''}`
+}
+
 export async function answerQuestion(projectId: string, question: string): Promise<AnswerResult> {
   let harness
   try {
     harness = await getActiveHarness(projectId)
   } catch {
-    return { projectId, answer: 'No memory found for this project.', citations: [], unsupported: true }
+    harness = undefined
   }
-  const fixture = getFixture(projectId)
-  const allDecisions = fixture?.decisions ?? []
+  // Decisions for the supersededBy chain: the database when configured, the
+  // fixture only offline.
+  const allDecisions: Decision[] = isDbConfigured()
+    ? await safe(
+        collection('decisions').then((c) => c.find({ projectId }).toArray() as Promise<Decision[]>),
+        [] as Decision[],
+      )
+    : (getFixture(projectId)?.decisions ?? [])
 
   const [decisionHits, attemptHits, docHits] = await Promise.all([
     retrieveDecisions(projectId, question, harness),
@@ -90,6 +128,7 @@ export async function answerQuestion(projectId: string, question: string): Promi
     citations.push({ kind: 'document', id: doc._id, title: doc.title, status: doc.kind, source: doc.source, url: doc.url })
   }
 
+  const currentDecisions = topDecisions.map((d) => resolveCurrent(allDecisions, d))
   const key = readEnv().OPENROUTER_API_KEY
   const answer = key
     ? await composeWithModel(question, topDecisions.map((d) => resolveCurrent(allDecisions, d)), topAttempts, topDocs, harness, key)

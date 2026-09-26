@@ -24,7 +24,7 @@ interface CheckResponse {
   error?: string
 }
 
-const EXAMPLE = 'Let\u2019s add socket.io so the task board shows live updates for everyone on the team.'
+const PLACEHOLDER = 'Let\u2019s add WebSockets so the board shows live updates for everyone on the team.'
 
 export default function CheckIdeaPage() {
   const [text, setText] = useState('')
@@ -42,7 +42,7 @@ export default function CheckIdeaPage() {
       const res = await fetch('/api/check', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ projectId: 'orbit', text }),
+        body: JSON.stringify({ text }),
       })
       const data = (await res.json()) as CheckResponse
       if (!res.ok || !data.ok) throw new Error(data.error ?? 'Check failed')
@@ -60,7 +60,6 @@ export default function CheckIdeaPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          projectId: 'orbit',
           target: { kind: 'check', id: attemptId },
           verdict: 'not_relevant',
         }),
@@ -86,7 +85,7 @@ export default function CheckIdeaPage() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           rows={4}
-          placeholder={EXAMPLE}
+          placeholder={PLACEHOLDER}
           className="w-full resize-y rounded-md border border-border bg-background p-3 font-sans leading-relaxed outline-none focus:border-foreground"
         />
         <div className="flex items-center gap-3">
@@ -96,13 +95,6 @@ export default function CheckIdeaPage() {
             className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-40"
           >
             Check for dead ends
-          </button>
-          <button
-            type="button"
-            onClick={() => setText(EXAMPLE)}
-            className="text-sm text-muted-foreground underline underline-offset-4"
-          >
-            Try the socket.io example
           </button>
         </div>
       </form>
