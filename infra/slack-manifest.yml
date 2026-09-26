@@ -1,9 +1,9 @@
 display_information:
-  name: ProjectBrain
+  name: Second Brain
   description: Remembers dead ends and warns before the team repeats them.
 features:
   bot_user:
-    display_name: ProjectBrain
+    display_name: Second Brain
     always_online: true
 oauth_config:
   scopes:

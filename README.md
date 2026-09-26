@@ -1,6 +1,6 @@
-# ProjectBrain
+# Second Brain
 
-Long-horizon **dead-end memory** for software teams. ProjectBrain remembers what a
+Long-horizon **dead-end memory** for software teams. Second Brain remembers what a
 team decided, what failed, and why — and stops someone before they repeat a failed
 attempt, **with the proof**.
 

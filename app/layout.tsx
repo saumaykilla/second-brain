@@ -7,7 +7,7 @@ const plexSans = IBM_Plex_Sans({ subsets: ['latin'], weight: ['400', '500', '600
 const sourceSerif = Source_Serif_4({ subsets: ['latin'], variable: '--font-source-serif' })
 
 export const metadata: Metadata = {
-  title: 'ProjectBrain',
+  title: 'Second Brain',
   description: 'Project memory that remembers dead ends and warns before your team repeats them.',
 }
 
