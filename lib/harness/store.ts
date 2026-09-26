@@ -13,7 +13,13 @@ export async function listHarnessVersions(projectId: string): Promise<HarnessCon
     return (await (await collection('harness_configs')).find({ projectId }).sort({ version: 1 }).toArray()) as HarnessConfig[]
   }
   const fixture = getFixture(projectId)
-  return fixture ? [fixture.harness] : []
+  if (!fixture) return []
+  // Prefer the seeded demo history (v1 + rejected candidate + promoted v3) so the
+  // Lab screen shows real version diffs and scores with no database configured.
+  if (fixture.harnessHistory && fixture.harnessHistory.length > 0) {
+    return [...fixture.harnessHistory].sort((a, b) => a.version - b.version)
+  }
+  return [fixture.harness]
 }
 
 /** Persist a promoted version and make it the only active one (R19). */

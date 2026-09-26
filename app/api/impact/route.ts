@@ -1,6 +1,7 @@
 import { collection, isDbConfigured } from '@/lib/db'
 import { defaultProjectId } from '@/lib/env'
 import { listHarnessVersions } from '@/lib/harness/store'
+import { getFixture } from '@/lib/fixtures'
 import type { Feedback, Warning } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
@@ -17,12 +18,15 @@ export async function GET(request: Request) {
     .map((v) => ({ version: v.version, precision: v.scores!.deadEndPrecision, overall: v.scores!.overall }))
 
   if (!isDbConfigured()) {
+    // No database: use the seeded demo warnings from the fixture so Impact shows
+    // real numbers. All seeded warnings are treated as accepted.
+    const seeded = getFixture(projectId)?.warnings ?? []
     return Response.json({
       ok: true,
       projectId,
-      warningsSent: 0,
-      hoursSaved: 0,
-      note: 'No database configured; warnings accrue once Slack/Check warnings are recorded.',
+      warningsSent: seeded.length,
+      warningsAccepted: seeded.length,
+      hoursSaved: seeded.reduce((sum, w) => sum + w.hoursSaved, 0),
       precisionTrend,
     })
   }

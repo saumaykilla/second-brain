@@ -160,6 +160,75 @@
       "reflect": "anthropic/claude-sonnet-4.5",
       "embed": "text-embedding-3-small"
     },
+    "scores": { "deadEndPrecision": 0.83, "deadEndRecall": 0.87, "citationAccuracy": 0.9, "staleness": 0.12, "overall": 0.86 },
     "createdAt": "2026-09-26T00:00:00Z"
-  }
+  },
+  "harnessHistory": [
+    {
+      "_id": "harness-orbit-v1",
+      "projectId": "orbit",
+      "version": 1,
+      "active": false,
+      "prompts": {
+        "classify": "Label the message as decision, attempt_start, attempt_result, intent, question, or noise. Reply with the label only.",
+        "extract": "Extract the attempt or decision described. Use only facts stated in the messages.",
+        "judge": "Given a new plan and a past failed attempt, decide whether the plan would hit the same blocker. Reply with match, confidence 0-1, and a one-sentence reason.",
+        "answer": "Answer from the cited records only. Say which decisions are current and which are superseded.",
+        "conditions": "Given a new decision and a past attempt's conditions, decide which conditions the decision satisfies."
+      },
+      "retrieval": { "k": 8, "minScore": 0.72, "hybridWeight": 0.3 },
+      "mergeWindowDays": 7,
+      "routing": { "classify": "openai/gpt-5-mini", "extract": "openai/gpt-5-mini", "judge": "anthropic/claude-sonnet-4.5", "reflect": "anthropic/claude-sonnet-4.5", "embed": "text-embedding-3-small" },
+      "change": "Baseline harness.",
+      "scores": { "deadEndPrecision": 0.83, "deadEndRecall": 0.87, "citationAccuracy": 0.9, "staleness": 0.12, "overall": 0.86 },
+      "createdAt": "2026-09-26T00:00:00Z"
+    },
+    {
+      "_id": "harness-orbit-v2-rejected",
+      "projectId": "orbit",
+      "version": 2,
+      "parentVersion": 1,
+      "active": false,
+      "prompts": {
+        "classify": "Label the message as decision, attempt_start, attempt_result, intent, question, or noise. Reply with the label only.",
+        "extract": "Extract the attempt or decision described. Use only facts stated in the messages.",
+        "judge": "Given a new plan and a past failed attempt, decide whether the plan would hit the same blocker. Reply with match, confidence 0-1, and a one-sentence reason.",
+        "answer": "Answer from the cited records only. Say which decisions are current and which are superseded.",
+        "conditions": "Given a new decision and a past attempt's conditions, decide which conditions the decision satisfies."
+      },
+      "retrieval": { "k": 12, "minScore": 0.6, "hybridWeight": 0.3 },
+      "mergeWindowDays": 7,
+      "routing": { "classify": "openai/gpt-5-mini", "extract": "openai/gpt-5-mini", "judge": "anthropic/claude-sonnet-4.5", "reflect": "anthropic/claude-sonnet-4.5", "embed": "text-embedding-3-small" },
+      "change": "Lower minScore 0.72 -> 0.60 and raise k 8 -> 12 to catch more dead ends.",
+      "rejectedReason": "Dead-end precision dropped 0.83 -> 0.74 (more false warnings). Overall did not improve.",
+      "scores": { "deadEndPrecision": 0.74, "deadEndRecall": 0.93, "citationAccuracy": 0.9, "staleness": 0.12, "overall": 0.83 },
+      "createdAt": "2026-09-27T09:00:00Z"
+    },
+    {
+      "_id": "harness-orbit-v3",
+      "projectId": "orbit",
+      "version": 3,
+      "parentVersion": 1,
+      "active": true,
+      "prompts": {
+        "classify": "Label the message as decision, attempt_start, attempt_result, intent, question, or noise. Reply with the label only.",
+        "extract": "Extract the attempt or decision described. Use only facts stated in the messages.",
+        "judge": "Given a new plan and a past failed attempt, decide whether it is the SAME approach under the SAME conditions. If the plan proposes the recorded alternative, it is not a match. Reply with match, confidence 0-1, and a one-sentence reason.",
+        "answer": "Answer from the cited records only. Say which decisions are current and which are superseded.",
+        "conditions": "Given a new decision and a past attempt's conditions, decide which conditions the decision satisfies."
+      },
+      "retrieval": { "k": 8, "minScore": 0.72, "hybridWeight": 0.4 },
+      "mergeWindowDays": 7,
+      "routing": { "classify": "openai/gpt-5-mini", "extract": "openai/gpt-5-mini", "judge": "anthropic/claude-sonnet-4.5", "reflect": "anthropic/claude-sonnet-4.5", "embed": "text-embedding-3-small" },
+      "change": "Sharpen the judge prompt to reject a plan that proposes the recorded alternative, and raise hybridWeight 0.3 -> 0.4.",
+      "scores": { "deadEndPrecision": 0.91, "deadEndRecall": 1.0, "citationAccuracy": 1.0, "staleness": 0.0, "overall": 0.96 },
+      "createdAt": "2026-09-28T09:00:00Z"
+    }
+  ],
+  "warnings": [
+    { "_id": "warn-1", "projectId": "orbit", "attemptId": "att-websockets", "channel": "slack", "confidence": 0.91, "hoursSaved": 14, "harnessVersion": 3, "createdAt": "2026-09-28T14:12:00Z" },
+    { "_id": "warn-2", "projectId": "orbit", "attemptId": "att-postgres-like", "channel": "web", "confidence": 0.86, "hoursSaved": 9, "harnessVersion": 3, "createdAt": "2026-09-29T10:03:00Z" },
+    { "_id": "warn-3", "projectId": "orbit", "attemptId": "att-cheap-summary", "channel": "slack", "confidence": 0.78, "hoursSaved": 5, "harnessVersion": 3, "createdAt": "2026-09-30T16:40:00Z" },
+    { "_id": "warn-4", "projectId": "orbit", "attemptId": "att-pdf-library", "channel": "web", "confidence": 0.81, "hoursSaved": 6, "harnessVersion": 3, "createdAt": "2026-10-01T11:20:00Z" }
+  ]
 }
